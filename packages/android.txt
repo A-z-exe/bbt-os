@@ -1,0 +1,9 @@
+# Android tooling available from the Kali repositories.
+adb
+fastboot
+apktool
+jadx
+apksigner
+dex2jar
+jd-gui
+scrcpy

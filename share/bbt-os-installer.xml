@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-appimage">
+    <comment>AppImage application</comment>
+    <magic priority="60">
+      <match type="string" value="AI" offset="8"/>
+    </magic>
+    <glob pattern="*.AppImage" weight="80"/>
+    <glob pattern="*.appimage" weight="80"/>
+  </mime-type>
+  <mime-type type="application/x-bbt-os-run">
+    <comment>BBT OS run installer</comment>
+    <glob pattern="*.run" weight="70"/>
+  </mime-type>
+</mime-info>

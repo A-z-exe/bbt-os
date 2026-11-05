@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=BBT OS wallpaper
+Comment=Apply the BBT OS desktop wallpaper
+Exec=/usr/local/bin/bbt-os-wallpaper
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030708"/>
+      <stop offset="0.55" stop-color="#061312"/>
+      <stop offset="1" stop-color="#020506"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#39ff14" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#0b6b57" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#39ff14"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#0d2b28" stroke-width="1"/>
+    </pattern>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1" fill="#39ff14" opacity="0.05"/>
+    </pattern>
+    <pattern id="hex" width="120" height="104" patternUnits="userSpaceOnUse">
+      <path d="M30 2 L90 2 L118 52 L90 102 L30 102 L2 52 Z" fill="none" stroke="#123f38" stroke-width="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#hex)" opacity="0.55"/>
+  <rect width="1920" height="1080" fill="url(#grid)" opacity="0.5"/>
+  <circle cx="330" cy="240" r="620" fill="url(#glow)"/>
+  <circle cx="1550" cy="760" r="560" fill="url(#cyanGlow)"/>
+
+  <g stroke="#145c4a" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M0 860 H220 L300 780 H520"/>
+    <path d="M0 900 H180 L260 820 H470"/>
+    <path d="M1380 120 H1600 L1680 40 H1920"/>
+    <path d="M1450 160 H1650 L1730 80 H1920"/>
+  </g>
+  <g fill="#39ff14" opacity="0.8">
+    <circle cx="220" cy="860" r="4"/><circle cx="520" cy="780" r="4"/>
+    <circle cx="180" cy="900" r="3"/><circle cx="470" cy="820" r="3"/>
+    <circle cx="1600" cy="120" r="4"/><circle cx="1680" cy="40" r="3"/>
+    <circle cx="1650" cy="160" r="3"/><circle cx="1730" cy="80" r="4"/>
+  </g>
+
+  <g transform="translate(1260 250)">
+    <rect x="0" y="0" width="560" height="390" rx="18" fill="#050f0d" fill-opacity="0.82"
+          stroke="#145c4a" stroke-width="2"/>
+    <rect x="0" y="0" width="560" height="42" rx="18" fill="#0a1c19"/>
+    <circle cx="28" cy="21" r="7" fill="#ff5f56"/>
+    <circle cx="52" cy="21" r="7" fill="#ffbd2e"/>
+    <circle cx="76" cy="21" r="7" fill="#27c93f"/>
+    <text x="104" y="27" font-family="DejaVu Sans Mono, monospace" font-size="16" fill="#6fbfa8">bbt@os: ~</text>
+    <text x="30" y="92" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#39ff14">$ bbt -t https://target -m auto</text>
+    <text x="30" y="132" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#22d3ee">$ katana -u https://target -jc</text>
+    <text x="30" y="172" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#d7fff1">$ nuclei -l subs.txt -severity high</text>
+    <text x="30" y="212" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#d7fff1">$ adb devices -l</text>
+    <text x="30" y="252" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#d7fff1">$ netexec smb 10.0.0.0/24</text>
+    <text x="30" y="292" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#ffbd2e">[scope] authorized targets only</text>
+    <text x="30" y="350" font-family="DejaVu Sans Mono, monospace" font-size="22" fill="#39ff14">_</text>
+  </g>
+
+  <g transform="translate(1420 690)">
+    <path d="M120 0 L300 64 V190 C300 290 220 360 120 392 C20 360 -60 290 -60 190 V64 Z"
+          fill="none" stroke="#145c4a" stroke-width="3" opacity="0.8"/>
+    <path d="M120 34 L262 84 V190 C262 268 200 324 120 350 C40 324 -22 268 -22 190 V84 Z"
+          fill="none" stroke="#39ff14" stroke-width="1.5" opacity="0.45"/>
+    <text x="120" y="220" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+          font-size="92" font-weight="bold" fill="#39ff14">&gt;_</text>
+  </g>
+
+  <text x="120" y="400" font-family="DejaVu Sans Mono, monospace" font-size="168"
+        font-weight="bold" fill="#39ff14" letter-spacing="2">BBT</text>
+  <text x="560" y="400" font-family="DejaVu Sans Mono, monospace" font-size="72"
+        font-weight="bold" fill="#22d3ee" letter-spacing="6">OS</text>
+  <text x="126" y="466" font-family="DejaVu Sans Mono, monospace" font-size="30"
+        fill="#d7fff1" letter-spacing="13">BUG BOUNTY TOOLKIT</text>
+  <rect x="126" y="500" width="760" height="3" fill="url(#neon)" opacity="0.7"/>
+  <text x="126" y="556" font-family="DejaVu Sans Mono, monospace" font-size="22"
+        fill="#7de3c3" letter-spacing="5">WEB  ·  ANDROID  ·  WINDOWS/AD</text>
+  <text x="126" y="612" font-family="DejaVu Sans Mono, monospace" font-size="18"
+        fill="#5f8f82" letter-spacing="3">RECON  ·  VERIFY  ·  REPORT</text>
+
+  <text x="126" y="960" font-family="DejaVu Sans Mono, monospace" font-size="22"
+        fill="#39ff14">github.com/A-z-exe</text>
+  <text x="126" y="998" font-family="DejaVu Sans Mono, monospace" font-size="16"
+        fill="#6fbfa8">AmirHossein Zarei  ·  BBT OS 1.0  ·  based on Kali Linux</text>
+
+  <rect width="1920" height="1080" fill="url(#scan)"/>
+  <rect x="40" y="40" width="1840" height="1000" rx="10" fill="none" stroke="#123f38" stroke-width="1.5" opacity="0.5"/>
+</svg>

@@ -1,0 +1,19 @@
+ ____  ____ _____    ___  ____
+| __ )| __ )_   _|  / _ \/ ___|
+|  _ \|  _ \ | |   | | | \___ \
+| |_) | |_) || |   | |_| |___) |
+|____/|____/ |_|    \___/|____/
+
+ BBT OS 1.0 - Bug Bounty Toolkit Edition (Kali Linux Rolling)
+ Web / Recon - Android - Windows / AD - Reporting
+
+ Developer : AmirHossein Zarei
+ GitHub    : https://github.com/A-z-exe
+ Email     : 207771865+A-z-exe@users.noreply.github.com
+
+ Launcher  : search "BBT OS" or run: bbt-os-launcher
+ BBT tool  : bbt --version
+ Update    : sudo bbt-os-refresh
+ Docs      : /usr/share/bbt-os/README.md
+
+ Only test assets you own or are explicitly authorized to test.

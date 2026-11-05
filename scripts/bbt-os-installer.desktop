@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=BBT OS Installer
+Comment=Install .deb, .AppImage, .run and .sh files with a double-click
+Exec=/usr/local/bin/bbt-os-install-file %f
+Icon=system-software-install
+Terminal=false
+NoDisplay=true
+StartupNotify=true
+Categories=System;
+MimeType=application/vnd.debian.binary-package;application/x-deb;application/x-appimage;application/x-bbt-os-run;application/x-shellscript;

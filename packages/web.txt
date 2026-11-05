@@ -1,0 +1,26 @@
+# Web, recon and reporting tooling.
+seclists
+subfinder
+katana
+dnsx
+naabu
+httpx-toolkit
+nuclei
+ffuf
+wfuzz
+whatweb
+wafw00f
+feroxbuster
+gobuster
+dirb
+nikto
+sqlmap
+wpscan
+hydra
+masscan
+nmap
+amass
+gowitness
+theharvester
+arjun
+exploitdb

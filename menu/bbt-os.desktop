@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=BBT OS
+GenericName=Bug Bounty Workstation
+Comment=Web, Android and Windows/AD bug bounty toolkit launcher
+Exec=/usr/local/bin/bbt-os-launcher
+Icon=/usr/share/bbt-os/bbt-os.svg
+Terminal=false
+Categories=System;Security;
+Keywords=bbt;bbt os;bug bounty;bounty;hack;hacker;android;windows;web;recon;security;
+StartupNotify=true

@@ -1,0 +1,8 @@
+# Windows and Active Directory assessment tooling.
+python3-impacket
+impacket-scripts
+netexec
+evil-winrm
+responder
+enum4linux-ng
+bloodhound.py
