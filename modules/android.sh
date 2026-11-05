@@ -9,14 +9,16 @@ install_android() {
     install -d -o "$TARGET_USER" -g "$TARGET_GROUP" "$TARGET_HOME/Android"
 
     if [ ! -x "$TARGET_HOME/.local/bin/frida-ps" ]; then
-        if run_as_user timeout 900 pipx install frida-tools >/dev/null 2>&1; then
+        if run_as_user timeout 900 pipx install \
+            --pip-args="--timeout 60 --retries 10" frida-tools >/dev/null 2>&1; then
             ok "frida-tools (pipx)"
         else
             warn "frida-tools install failed; retry with: pipx install frida-tools"
         fi
     fi
     if [ ! -x "$TARGET_HOME/.local/bin/objection" ]; then
-        if run_as_user timeout 900 pipx install objection >/dev/null 2>&1; then
+        if run_as_user timeout 900 pipx install \
+            --pip-args="--timeout 60 --retries 10" objection >/dev/null 2>&1; then
             ok "objection (pipx)"
         else
             warn "objection install failed; retry with: pipx install objection"

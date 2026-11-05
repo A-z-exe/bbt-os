@@ -17,6 +17,7 @@ from pathlib import Path
 
 import gi
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, Gtk  # noqa: E402
 
@@ -46,7 +47,14 @@ label.muted { color: #5f8f82; font-family: monospace; font-size: 10px; }
 
 
 def which(tool: str) -> str | None:
-    return shutil.which(tool)
+    found = shutil.which(tool)
+    if found:
+        return found
+    for directory in (HOME / ".local" / "bin", Path("/usr/local/bin")):
+        candidate = directory / tool
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
 
 
 def bbt_invocation() -> tuple[str, list[str]]:
@@ -83,6 +91,7 @@ def terminal_command(title: str, command: str) -> list[str] | None:
         handle.write("#!/usr/bin/env bash\n")
         handle.write("set -uo pipefail\n")
         handle.write("trap 'rm -f -- \"$0\"' EXIT\n")
+        handle.write('export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"\n')
         handle.write("clear 2>/dev/null || true\n")
         handle.write(f"printf '\\033[1;32m%s\\033[0m\\n\\n' {shlex.quote(title)}\n")
         handle.write(command + "\n")
@@ -188,6 +197,8 @@ def build_actions() -> list[dict]:
         "", "apktool", keywords="apk apktool decompile")
     add("Android", "APK open (JADX GUI)", "Choose an APK and open JADX GUI",
         "", "jadx-gui", gui=True, keywords="apk jadx decompile gui")
+    add("Android", "APK to JAR (dex2jar)", "Choose an APK and convert its classes to a JAR",
+        "", "d2j-dex2jar", keywords="apk dex2jar jar classes")
     add("Android", "Frida processes", "List processes on the USB device",
         "frida-ps -U", "frida-ps", keywords="frida hook instrumentation")
     add("Android", "Objection", "Runtime mobile exploration help",
@@ -394,6 +405,14 @@ class BBTWindow(Gtk.Window):
             apk = self.choose_apk()
             if apk:
                 launch_gui(["jadx-gui", apk])
+        elif name == "APK to JAR (dex2jar)":
+            apk = self.choose_apk()
+            if apk:
+                out = apk[:-4] + ".jar" if apk.lower().endswith(".apk") else apk + ".jar"
+                launch_terminal(
+                    f"dex2jar: {Path(apk).name}",
+                    f"d2j-dex2jar -f -o {shlex.quote(out)} {shlex.quote(apk)}",
+                )
         elif name == "Scrcpy":
             launch_gui(["scrcpy"])
         elif name == "Open MobSF UI":
@@ -401,7 +420,10 @@ class BBTWindow(Gtk.Window):
         elif name == "Update BBT toolkit":
             self.update_bbt()
         elif action["command"]:
-            launch_terminal(name, action["command"])
+            if action.get("gui"):
+                launch_gui(["bash", "-c", action["command"]])
+            else:
+                launch_terminal(name, action["command"])
 
     def update_bbt(self) -> None:
         repo, _argv = bbt_invocation()

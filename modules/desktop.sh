@@ -7,11 +7,13 @@ install_desktop() {
     install -d /opt/bbt-os
     if [ "$HERE" != "/opt/bbt-os" ]; then
         cp -a "$HERE/." /opt/bbt-os/
+        rm -rf /opt/bbt-os/.git /opt/bbt-os/menu/__pycache__
     fi
     install -d /usr/share/bbt-os /usr/share/icons/hicolor/scalable/apps
     install -m 644 "$HERE/assets/bbt-os.svg" /usr/share/bbt-os/bbt-os.svg
     install -m 644 "$HERE/assets/bbt-os.svg" /usr/share/icons/hicolor/scalable/apps/bbt-os.svg
     install -m 644 "$HERE/assets/wallpaper.svg" /usr/share/bbt-os/wallpaper.svg
+    install -m 644 "$HERE/assets/wallpaper.png" /usr/share/bbt-os/wallpaper.png
     install -m 644 "$HERE/README.md" /usr/share/bbt-os/README.md
     install -m 644 "$HERE/AUTHORS.md" /usr/share/bbt-os/AUTHORS.md
     install -m 644 "$HERE/LICENSE" /usr/share/bbt-os/LICENSE

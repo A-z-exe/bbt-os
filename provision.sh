@@ -160,7 +160,8 @@ missing=0
 for t in nmap ffuf nuclei httpx subfinder katana amass dnsx naabu gobuster \
          feroxbuster dirb nikto sqlmap wpscan hydra whatweb wafw00f gowitness \
          theharvester searchsploit msfconsole burpsuite wireshark \
-         adb fastboot apktool jadx apksigner dex2jar scrcpy \
+         adb fastboot apktool jadx apksigner d2j-dex2jar scrcpy \
+         frida-ps objection \
          netexec evil-winrm responder enum4linux-ng bloodhound-python docker bbt; do
     if command -v "$t" >/dev/null 2>&1 || [ -x "$TARGET_HOME/.local/bin/$t" ]; then
         printf '  OK      %s\n' "$t"
