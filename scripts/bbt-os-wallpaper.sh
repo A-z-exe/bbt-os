@@ -55,6 +55,7 @@ for base in "${MONITORS[@]}"; do
     set_prop "$base/image-style" int 5
     for ws in 0 1 2 3; do
         set_prop "$base/workspace$ws/last-image" string "$WALLPAPER"
+        set_prop "$base/workspace$ws/image-path" string "$WALLPAPER"
     done
 done
 
