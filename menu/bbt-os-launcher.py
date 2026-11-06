@@ -229,6 +229,32 @@ def build_actions() -> list[dict]:
     add("Windows / AD", "BloodHound.py", "AD collection help",
         "bloodhound-python -h 2>&1 | head -n 50", "bloodhound-python")
 
+    # ----------------------------------------------------------- Smart Card
+    add("Smart Card", "Reader status", "PC/SC readers, ATR and card status",
+        "bbt-smartcard status", "pcsc_scan",
+        keywords="smart card pcsc reader atr nfc chip")
+    add("Smart Card", "Read chip info", "ATR, card name, protocols and algorithms",
+        "bbt-smartcard info", "opensc-tool",
+        keywords="smart card chip information atr opensc")
+    add("Smart Card", "Certificates (PIV/PKCS#15)", "List certificates stored on the card",
+        "bbt-smartcard certs", "pkcs15-tool",
+        keywords="piv pkcs15 certificate smartcard")
+    add("Smart Card", "NFC tag scan", "List NFC targets in the field",
+        "bbt-smartcard nfc-scan", "nfc-list",
+        keywords="nfc rfid tag scan libnfc")
+    add("Smart Card", "Read NDEF tag", "Read an NDEF message from a MIFARE Classic tag",
+        "bbt-smartcard ndef-read", "mifare-classic-read-ndef",
+        keywords="ndef nfc mifare tag read")
+    add("Smart Card", "Write NDEF tag", "Write a message to a MIFARE tag (confirmation required)",
+        "bbt-smartcard ndef-write", "mifare-classic-write-ndef",
+        keywords="ndef nfc mifare write edit tag")
+    add("Smart Card", "MIFARE dump", "Recover keys and dump a MIFARE Classic tag (confirmation required)",
+        "bbt-smartcard mifare-dump", "mfoc",
+        keywords="mfoc mifare dump keys tag")
+    add("Smart Card", "Send APDU", "Send one raw APDU to the card (confirmation required)",
+        "bbt-smartcard apdu", "opensc-tool",
+        keywords="apdu iso7816 smartcard command")
+
     # ------------------------------------------------------------ Reporting
     add("Reporting", "BBT help", "Show every BBT mode and option",
         f"{bbt_cmd} --help 2>&1 | head -n 80", keywords="bbt help usage")

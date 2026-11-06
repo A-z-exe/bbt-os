@@ -97,7 +97,20 @@ EOF
     log "Applying wallpaper autostart"
     install -m 644 "$HERE/scripts/bbt-os-wallpaper.desktop" /etc/xdg/autostart/bbt-os-wallpaper.desktop
 
-    log "Disabling sleep, suspend and screen lock"
+    log "Auto-starting the BBT OS launcher after login"
+    cat >/etc/xdg/autostart/bbt-os-launcher.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=BBT OS Launcher
+Comment=Open the BBT OS launcher after login
+Exec=sh -c "sleep 4; bbt-os-launcher"
+Terminal=false
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+EOF
+    chmod 644 /etc/xdg/autostart/bbt-os-launcher.desktop
+
+    log "Disabling sleep and suspend (screen lock stays available)"
     systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target >/dev/null 2>&1 || true
     mkdir -p /etc/systemd/logind.conf.d
     cat >/etc/systemd/logind.conf.d/99-bbt-os-no-sleep.conf <<'EOF'
@@ -142,10 +155,10 @@ apply_xfce_session_settings() {
     xfset xfce4-power-manager /xfce4-power-manager/dpms-on-ac-off int 0
     xfset xfce4-power-manager /xfce4-power-manager/blank-on-ac int 0
     xfset xfce4-power-manager /xfce4-power-manager/inactivity-on-ac int 0
-    xfset xfce4-power-manager /xfce4-power-manager/lock-screen-suspend-hibernate bool false
+    xfset xfce4-power-manager /xfce4-power-manager/lock-screen-suspend-hibernate bool true
     xfset xfce4-screensaver /saver/enabled bool false
-    xfset xfce4-screensaver /lock/enabled bool false
-    xfset xfce4-session /shutdown/LockScreen bool false
+    xfset xfce4-screensaver /lock/enabled bool true
+    xfset xfce4-session /shutdown/LockScreen bool true
 
     with_user_session /usr/local/bin/bbt-os-wallpaper >/dev/null 2>&1 || true
     with_user_session /usr/local/bin/bbt-os-cursor >/dev/null 2>&1 || true

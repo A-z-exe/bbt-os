@@ -41,7 +41,11 @@ target_group() { id -gn "$TARGET_USER"; }
 detect_target_user() {
     TARGET_USER="${BBT_TARGET_USER:-${SUDO_USER:-}}"
     if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = root ]; then
-        TARGET_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 && $7 !~ /(nologin|false)$/ {print $1; exit}' /etc/passwd)
+        if id bbt >/dev/null 2>&1; then
+            TARGET_USER=bbt
+        else
+            TARGET_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 && $7 !~ /(nologin|false)$/ {print $1; exit}' /etc/passwd)
+        fi
     fi
     if [ -z "$TARGET_USER" ]; then
         warn "no desktop user found; falling back to kali"

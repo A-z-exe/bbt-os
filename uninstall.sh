@@ -21,7 +21,7 @@ echo "[*] Removing BBT OS wrappers and desktop entries"
 rm -f /usr/local/bin/bbt-os-launcher /usr/local/bin/bbt-os \
       /usr/local/bin/bbt-os-refresh /usr/local/bin/bbt-os-wallpaper \
       /usr/local/bin/bbt-os-install-file /usr/local/bin/bbt-os-cursor \
-      /usr/local/bin/mobsf
+      /usr/local/bin/bbt-smartcard /usr/local/bin/mobsf
 rm -f /usr/share/applications/bbt-os.desktop \
       /usr/share/applications/bbt-os-installer.desktop
 rm -f /etc/xdg/autostart/bbt-os-*.desktop
@@ -87,6 +87,16 @@ if [ -d "$BACKUP_DIR" ]; then
         plymouth-set-default-theme kali -R >/dev/null 2>&1 || true
     fi
     command -v update-grub >/dev/null 2>&1 && update-grub >/dev/null 2>&1 || true
+    if [ -f "$BACKUP_DIR/lock-restore.tsv" ]; then
+        echo "[*] Restoring login screen configuration"
+        while IFS=$'\t' read -r target backup; do
+            [ -f "$BACKUP_DIR/$backup" ] && cp -a "$BACKUP_DIR/$backup" "$target"
+        done <"$BACKUP_DIR/lock-restore.tsv"
+        rm -f "$BACKUP_DIR/lock-restore.tsv"
+    fi
+    for gtk_css in /home/*/.config/gtk-3.0/gtk.css; do
+        [ -f "$gtk_css" ] && sed -i '/\/\* BBT OS lock dialog \*\//,$d' "$gtk_css"
+    done
 fi
 
 echo "[*] BBT OS overlay removed."

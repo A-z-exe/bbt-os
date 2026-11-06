@@ -16,6 +16,8 @@ DO_MOBSF=1
 DO_BBT=1
 DO_DESKTOP=1
 DO_BOOT=1
+DO_LOCK=1
+DO_SMARTCARD=1
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -27,6 +29,8 @@ while [ $# -gt 0 ]; do
         --no-bbt)     DO_BBT=0 ;;
         --no-desktop) DO_DESKTOP=0 ;;
         --no-boot)    DO_BOOT=0 ;;
+        --no-lock)    DO_LOCK=0 ;;
+        --no-smartcard) DO_SMARTCARD=0 ;;
         --target-user) shift; BBT_TARGET_USER="${1:-}" ;;
         --target-user=*) BBT_TARGET_USER="${1#*=}" ;;
         --help|-h)
@@ -43,6 +47,8 @@ Usage: sudo bbt-os-refresh [options]
   --no-bbt       skip the BBT Toolkit update
   --no-desktop   skip relaunching/reinstalling desktop assets
   --no-boot      skip refreshing boot splash and GRUB artwork
+  --no-lock      skip refreshing lock/login screen assets
+  --no-smartcard skip smart card / NFC packages
   --target-user USER  refresh user-level pieces for USER
   -h, --help     show this help
 EOF
@@ -89,6 +95,11 @@ if [ "$DO_WINDOWS" = 1 ]; then
     source "$HERE/modules/windows.sh"
     install_windows
 fi
+if [ "$DO_SMARTCARD" = 1 ]; then
+    # shellcheck source=modules/smartcard.sh
+    source "$HERE/modules/smartcard.sh"
+    install_smartcard
+fi
 if [ "$DO_MOBSF" = 1 ]; then
     BBT_MOBSF_PULL=0
     # shellcheck source=modules/mobsf.sh
@@ -111,6 +122,11 @@ if [ "$DO_BOOT" = 1 ]; then
     # shellcheck source=modules/boot.sh
     source "$HERE/modules/boot.sh"
     install_boot_branding
+fi
+if [ "$DO_LOCK" = 1 ]; then
+    # shellcheck source=modules/lockscreen.sh
+    source "$HERE/modules/lockscreen.sh"
+    install_lockscreen
 fi
 
 echo "=== refresh done: $(date -Is) ==="

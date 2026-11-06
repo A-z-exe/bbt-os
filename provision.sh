@@ -20,6 +20,8 @@ DO_BBT=1
 DO_DESKTOP=1
 DO_BRANDING=1
 DO_BOOT=1
+DO_LOCK=1
+DO_SMARTCARD=1
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -32,6 +34,8 @@ while [ $# -gt 0 ]; do
         --no-desktop)  DO_DESKTOP=0 ;;
         --no-branding) DO_BRANDING=0 ;;
         --no-boot)     DO_BOOT=0 ;;
+        --no-lock)     DO_LOCK=0 ;;
+        --no-smartcard) DO_SMARTCARD=0 ;;
         --web-only)    DO_ANDROID=0; DO_WINDOWS=0; DO_MOBSF=0 ;;
         --target-user) shift; BBT_TARGET_USER="${1:-}" ;;
         --target-user=*) BBT_TARGET_USER="${1#*=}" ;;
@@ -50,6 +54,8 @@ Usage: sudo bash install.sh [options]
   --no-desktop       skip launcher, wallpaper and file associations
   --no-branding      skip hostname, os-release, issue and MOTD
   --no-boot          skip the BBT OS boot splash and GRUB artwork
+  --no-lock          skip lock/login screen branding and lock settings
+  --no-smartcard     skip smart card / NFC tools
   --web-only         web tooling only (no Android, Windows or MobSF)
   --target-user USER install user-level pieces for USER (default: SUDO_USER)
   -h, --help         show this help
@@ -121,6 +127,11 @@ if [ "$DO_WINDOWS" = 1 ]; then
     source "$HERE/modules/windows.sh"
     install_windows
 fi
+if [ "$DO_SMARTCARD" = 1 ]; then
+    # shellcheck source=modules/smartcard.sh
+    source "$HERE/modules/smartcard.sh"
+    install_smartcard
+fi
 if [ "$DO_MOBSF" = 1 ]; then
     # shellcheck source=modules/mobsf.sh
     source "$HERE/modules/mobsf.sh"
@@ -149,6 +160,11 @@ if [ "$DO_BOOT" = 1 ]; then
     # shellcheck source=modules/boot.sh
     source "$HERE/modules/boot.sh"
     install_boot_branding
+fi
+if [ "$DO_LOCK" = 1 ]; then
+    # shellcheck source=modules/lockscreen.sh
+    source "$HERE/modules/lockscreen.sh"
+    install_lockscreen
 fi
 
 # ---------------------------------------------------------------------------

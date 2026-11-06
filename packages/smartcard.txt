@@ -1,0 +1,13 @@
+# Smart card (PC/SC) and NFC stack
+pcscd
+pcsc-tools
+opensc
+libccid
+libpcsclite1
+python3-pyscard
+libpcsc-perl
+libnfc-bin
+libnfc-examples
+libfreefare-bin
+mfoc
+mfcuk

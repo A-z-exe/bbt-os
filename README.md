@@ -28,6 +28,7 @@ Kali tooling, repositories and updates keep working normally.
 | **Web / Recon** | subfinder, httpx, katana, nuclei, ffuf, wfuzz, whatweb, wafw00f, gobuster, feroxbuster, dirb, nikto, sqlmap, WPScan, amass, dnsx, naabu, gowitness, theHarvester, arjun, exploitdb, nmap, masscan, hydra |
 | **Android** | adb, fastboot, apktool, jadx + JADX GUI, apksigner, dex2jar, jd-gui, scrcpy, frida-tools, objection, MobSF (Docker) |
 | **Windows / AD** | Impacket, NetExec, Evil-WinRM, Responder, Enum4linux-ng, BloodHound.py |
+| **Smart card / NFC** | PC/SC readers (`pcsc_scan`, OpenSC), ATR and PKCS#15/PIV certificates, NFC tag scan, NDEF read/write and MIFARE dump (authorized cards only) |
 | **Toolkit** | [BBT Toolkit](https://github.com/A-z-exe/BugBountyToolkit) with scope-gated `-m auto` orchestration |
 | **Desktop** | searchable neon GTK launcher, BBT wallpaper, menu entry, double-click installers |
 
@@ -36,6 +37,9 @@ Additional desktop work:
 - Hostname `bbt-os`, `os-release` pretty name and MOTD/issue branding.
 - BBT OS boot splash (Plymouth) and boot-menu artwork (GRUB) replace the Kali
   dragon at boot, with a neon progress bar and password prompt.
+- Branded login and lock screen (LightDM greeter artwork, BBT lock dialog,
+  avatar) with `Ctrl+Alt+L` locking the session.
+- The BBT OS launcher opens automatically a few seconds after login.
 - Sleep, suspend, hibernate, screen blanking and lock disabled for long scans.
 - VMware cursor fix (Adwaita cursor, `xsetroot` at login and `SWcursor` Xorg
   fallback for guests where `vmwgfx` loses the hardware cursor plane).
@@ -70,6 +74,8 @@ reach the graphical session.
 --no-desktop       skip launcher, wallpaper and file associations
 --no-branding      skip hostname, os-release, issue and MOTD
 --no-boot          skip the BBT OS boot splash and GRUB artwork
+--no-lock          skip lock/login screen branding and lock settings
+--no-smartcard     skip smart card / NFC tools
 --web-only         web tooling only
 --target-user USER choose the desktop user (default: SUDO_USER)
 ```
@@ -123,6 +129,55 @@ Check the launcher and tool availability from a shell:
 bbt-os-launcher --check
 bbt-os-launcher --version
 ```
+
+## Lock screen and login account
+
+The LightDM greeter uses the BBT OS background and avatar, and the lock dialog
+is styled to match (dark panel, neon accent, BBT avatar). Press **Ctrl+Alt+L**
+or use the session menu to lock. Locking on suspend is enabled; idle blanking
+stays off so long scans are not interrupted. To also lock after idle time:
+
+```bash
+xfconf-query -c xfce4-screensaver -p /saver/idle-activation/enabled -n -t bool -s true
+xfconf-query -c xfce4-screensaver -p /saver/idle-activation/delay -n -t uint -s 900
+```
+
+BBT OS images log in as **bbt**. On an existing Kali install you can create that
+account while keeping the current home directory (tools and virtualenvs keep
+working) and disable the stock `kali` account:
+
+```bash
+git clone https://github.com/A-z-exe/bbt-os.git
+cd bbt-os
+sudo BBT_NEW_PASS='<your-password>' bash scripts/bbt-os-account.sh
+```
+
+The script takes ownership of the home directory for `bbt`, copies the old
+group membership, adds `bbt` to `sudo` and `docker`, hides `kali` from the
+greeter and disables its shell. Log out and back in as `bbt`; change the
+password later with `passwd`.
+
+## Smart card / NFC
+
+`pcscd` runs at boot, so CCID readers (USB or built-in) work as soon as they
+are plugged in. In a VM, attach the reader to the guest first
+(**VM > Removable Devices**). Use the **Smart Card** group in the launcher or:
+
+```bash
+bbt-smartcard                  # readers, ATR, card name and algorithms
+bbt-smartcard info             # ATR and supported algorithms
+bbt-smartcard certs            # PKCS#15 / PIV certificates
+bbt-smartcard nfc-scan         # NFC targets in the field
+bbt-smartcard ndef-read        # read an NDEF message from a MIFARE tag
+bbt-smartcard ndef-write FILE  # write NDEF (asks for AUTHORIZED)
+bbt-smartcard mifare-dump      # mfoc key recovery + dump (asks for AUTHORIZED)
+bbt-smartcard apdu 00A40400... # send one APDU (asks for AUTHORIZED)
+```
+
+Commands that write to a card ask you to type `AUTHORIZED`; `--authorized`
+skips the prompt for scripts. Only use cards and tags you own or have written
+authorization to test. Writing to payment cards, government IDs or other
+people's credentials is illegal.
 
 ## MobSF
 
@@ -193,7 +248,7 @@ This runs `apt update`, upgrades packages, refreshes nuclei templates, WPScan,
 ExploitDB, nmap scripts and pipx tools, updates the BBT checkout, and reapplies
 the desktop assets. Use `--no-upgrade` to skip the distro upgrade, or
 `--no-web`, `--no-android`, `--no-windows`, `--no-mobsf`, `--no-bbt`,
-`--no-desktop`, `--no-boot` to skip a group.
+`--no-desktop`, `--no-boot`, `--no-lock`, `--no-smartcard` to skip a group.
 
 ## Uninstall
 
@@ -226,12 +281,12 @@ refresh.sh              package + database + toolkit refresh
 uninstall.sh            remove the overlay, restore identity
 VERSION                 build identity
 AUTHORS.md, LICENSE     developer and license
-assets/                 launcher icon, wallpaper, Plymouth splash and GRUB art (SVG/PNG)
+assets/                 launcher icon, wallpaper, login art, Plymouth splash and GRUB art
 branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
-modules/                web, android, windows, mobsf, bbt, desktop, branding, boot
+modules/                web, android, windows, smartcard, mobsf, bbt, desktop, lockscreen, branding, boot
 packages/               apt package manifests per tool group
-scripts/                wallpaper, cursor, double-click installer, MobSF helper
+scripts/                wallpaper, cursor, account, smart card, installer, MobSF helper
 share/                  AppImage and .run MIME definitions
 ```
 
