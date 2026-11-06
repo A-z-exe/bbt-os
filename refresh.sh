@@ -18,6 +18,10 @@ DO_DESKTOP=1
 DO_BOOT=1
 DO_LOCK=1
 DO_SMARTCARD=1
+DO_KERNEL=1
+DO_WIFI=1
+DO_WORKFLOWS=1
+DO_AUDIT=1
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -31,6 +35,10 @@ while [ $# -gt 0 ]; do
         --no-boot)    DO_BOOT=0 ;;
         --no-lock)    DO_LOCK=0 ;;
         --no-smartcard) DO_SMARTCARD=0 ;;
+        --no-kernel)  DO_KERNEL=0 ;;
+        --no-wifi)    DO_WIFI=0 ;;
+        --no-workflows) DO_WORKFLOWS=0 ;;
+        --no-audit)   DO_AUDIT=0 ;;
         --target-user) shift; BBT_TARGET_USER="${1:-}" ;;
         --target-user=*) BBT_TARGET_USER="${1#*=}" ;;
         --help|-h)
@@ -49,6 +57,10 @@ Usage: sudo bbt-os-refresh [options]
   --no-boot      skip refreshing boot splash and GRUB artwork
   --no-lock      skip refreshing lock/login screen assets
   --no-smartcard skip smart card / NFC packages
+  --no-kernel    skip kernel headers, firmware and modules
+  --no-wifi      skip wireless packages and the bbt-wifi engine
+  --no-workflows skip the matched workflow engine
+  --no-audit     skip the health doctor
   --target-user USER  refresh user-level pieces for USER
   -h, --help     show this help
 EOF
@@ -80,6 +92,12 @@ if [ "$DO_UPGRADE" = 1 ]; then
     apt-get full-upgrade "${APT_OPTS[@]}" || warn "full-upgrade reported errors"
 fi
 
+if [ "$DO_KERNEL" = 1 ]; then
+    # shellcheck source=modules/kernel.sh
+    source "$HERE/modules/kernel.sh"
+    install_kernel_support
+fi
+
 if [ "$DO_WEB" = 1 ]; then
     # shellcheck source=modules/web.sh
     source "$HERE/modules/web.sh"
@@ -100,6 +118,11 @@ if [ "$DO_SMARTCARD" = 1 ]; then
     source "$HERE/modules/smartcard.sh"
     install_smartcard
 fi
+if [ "$DO_WIFI" = 1 ]; then
+    # shellcheck source=modules/wifi.sh
+    source "$HERE/modules/wifi.sh"
+    install_wifi
+fi
 if [ "$DO_MOBSF" = 1 ]; then
     BBT_MOBSF_PULL=0
     # shellcheck source=modules/mobsf.sh
@@ -111,10 +134,20 @@ if [ "$DO_BBT" = 1 ]; then
     source "$HERE/modules/bbt.sh"
     install_bbt
 fi
+if [ "$DO_WORKFLOWS" = 1 ]; then
+    # shellcheck source=modules/workflows.sh
+    source "$HERE/modules/workflows.sh"
+    install_workflows
+fi
 if [ "$DO_DESKTOP" = 1 ]; then
     # shellcheck source=modules/desktop.sh
     source "$HERE/modules/desktop.sh"
     install_desktop
+fi
+if [ "$DO_AUDIT" = 1 ]; then
+    # shellcheck source=modules/audit.sh
+    source "$HERE/modules/audit.sh"
+    install_audit
 fi
 if [ "$DO_BOOT" = 1 ]; then
     # artwork only: the theme is already in the initramfs

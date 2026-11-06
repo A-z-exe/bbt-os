@@ -22,6 +22,10 @@ DO_BRANDING=1
 DO_BOOT=1
 DO_LOCK=1
 DO_SMARTCARD=1
+DO_KERNEL=1
+DO_WIFI=1
+DO_WORKFLOWS=1
+DO_AUDIT=1
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -36,6 +40,10 @@ while [ $# -gt 0 ]; do
         --no-boot)     DO_BOOT=0 ;;
         --no-lock)     DO_LOCK=0 ;;
         --no-smartcard) DO_SMARTCARD=0 ;;
+        --no-kernel)   DO_KERNEL=0 ;;
+        --no-wifi)     DO_WIFI=0 ;;
+        --no-workflows) DO_WORKFLOWS=0 ;;
+        --no-audit)    DO_AUDIT=0 ;;
         --web-only)    DO_ANDROID=0; DO_WINDOWS=0; DO_MOBSF=0 ;;
         --target-user) shift; BBT_TARGET_USER="${1:-}" ;;
         --target-user=*) BBT_TARGET_USER="${1#*=}" ;;
@@ -56,6 +64,10 @@ Usage: sudo bash install.sh [options]
   --no-boot          skip the BBT OS boot splash and GRUB artwork
   --no-lock          skip lock/login screen branding and lock settings
   --no-smartcard     skip smart card / NFC tools
+  --no-kernel        skip kernel headers, firmware and module setup
+  --no-wifi          skip wireless tools and the bbt-wifi engine
+  --no-workflows     skip the matched workflow engine
+  --no-audit         skip installing the health doctor
   --web-only         web tooling only (no Android, Windows or MobSF)
   --target-user USER install user-level pieces for USER (default: SUDO_USER)
   -h, --help         show this help
@@ -110,6 +122,15 @@ apt-get install "${APT_OPTS[@]}" libfuse2 >/dev/null 2>&1 \
     || warn "libfuse2 unavailable; AppImages run in extract-and-run mode"
 
 # ---------------------------------------------------------------------------
+# kernel and drivers
+# ---------------------------------------------------------------------------
+if [ "$DO_KERNEL" = 1 ]; then
+    # shellcheck source=modules/kernel.sh
+    source "$HERE/modules/kernel.sh"
+    install_kernel_support
+fi
+
+# ---------------------------------------------------------------------------
 # tool groups
 # ---------------------------------------------------------------------------
 if [ "$DO_WEB" = 1 ]; then
@@ -132,6 +153,11 @@ if [ "$DO_SMARTCARD" = 1 ]; then
     source "$HERE/modules/smartcard.sh"
     install_smartcard
 fi
+if [ "$DO_WIFI" = 1 ]; then
+    # shellcheck source=modules/wifi.sh
+    source "$HERE/modules/wifi.sh"
+    install_wifi
+fi
 if [ "$DO_MOBSF" = 1 ]; then
     # shellcheck source=modules/mobsf.sh
     source "$HERE/modules/mobsf.sh"
@@ -142,6 +168,11 @@ if [ "$DO_BBT" = 1 ]; then
     source "$HERE/modules/bbt.sh"
     install_bbt
 fi
+if [ "$DO_WORKFLOWS" = 1 ]; then
+    # shellcheck source=modules/workflows.sh
+    source "$HERE/modules/workflows.sh"
+    install_workflows
+fi
 
 # ---------------------------------------------------------------------------
 # desktop and identity
@@ -150,6 +181,11 @@ if [ "$DO_DESKTOP" = 1 ]; then
     # shellcheck source=modules/desktop.sh
     source "$HERE/modules/desktop.sh"
     install_desktop
+fi
+if [ "$DO_AUDIT" = 1 ]; then
+    # shellcheck source=modules/audit.sh
+    source "$HERE/modules/audit.sh"
+    install_audit
 fi
 if [ "$DO_BRANDING" = 1 ]; then
     # shellcheck source=modules/branding.sh
@@ -186,7 +222,8 @@ for t in nmap ffuf nuclei httpx subfinder katana amass dnsx naabu gobuster \
          theharvester searchsploit msfconsole burpsuite wireshark \
          adb fastboot apktool jadx apksigner d2j-dex2jar scrcpy \
          frida-ps objection \
-         netexec evil-winrm responder enum4linux-ng bloodhound-python docker bbt; do
+         netexec evil-winrm responder enum4linux-ng bloodhound-python docker bbt \
+         aircrack-ng hcxdumptool hcxpcapngtool hcxtools reaver bettercap hashcat; do
     if command -v "$t" >/dev/null 2>&1 || [ -x "$TARGET_HOME/.local/bin/$t" ]; then
         printf '  OK      %s\n' "$t"
     else
@@ -197,6 +234,14 @@ done
 [ -x /usr/local/bin/bbt-os-launcher ] \
     && printf '  OK      %s\n' "/usr/local/bin/bbt-os-launcher" \
     || printf '  MISSING %s\n' "/usr/local/bin/bbt-os-launcher"
+for t in bbt-wifi bbt-workflow bbt-os-doctor; do
+    if [ -x "/usr/local/bin/$t" ]; then
+        printf '  OK      %s\n' "/usr/local/bin/$t"
+    else
+        printf '  MISSING %s\n' "/usr/local/bin/$t"
+        missing=$((missing + 1))
+    fi
+done
 [ "$missing" -eq 0 ] || warn "$missing tools are missing; see the log above"
 
 echo

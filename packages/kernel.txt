@@ -1,0 +1,21 @@
+# Kernel, driver and firmware support for BBT OS
+dkms
+build-essential
+bc
+kmod
+lz4
+zstd
+firmware-atheros
+firmware-realtek
+firmware-iwlwifi
+firmware-misc-nonfree
+firmware-linux-free
+wireless-regdb
+iw
+wireless-tools
+rfkill
+usbutils
+pciutils
+ethtool
+open-vm-tools
+open-vm-tools-desktop

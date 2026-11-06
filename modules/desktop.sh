@@ -9,7 +9,7 @@ install_desktop() {
         cp -a "$HERE/." /opt/bbt-os/
         rm -rf /opt/bbt-os/.git /opt/bbt-os/menu/__pycache__
     fi
-    install -d /usr/share/bbt-os /usr/share/icons/hicolor/scalable/apps
+    install -d /usr/share/bbt-os /usr/share/bbt-os/icons /usr/share/icons/hicolor/scalable/apps
     install -m 644 "$HERE/assets/bbt-os.svg" /usr/share/bbt-os/bbt-os.svg
     install -m 644 "$HERE/assets/bbt-os.svg" /usr/share/icons/hicolor/scalable/apps/bbt-os.svg
     install -m 644 "$HERE/assets/wallpaper.svg" /usr/share/bbt-os/wallpaper.svg
@@ -17,6 +17,11 @@ install_desktop() {
     install -m 644 "$HERE/README.md" /usr/share/bbt-os/README.md
     install -m 644 "$HERE/AUTHORS.md" /usr/share/bbt-os/AUTHORS.md
     install -m 644 "$HERE/LICENSE" /usr/share/bbt-os/LICENSE
+    install -m 644 "$HERE/VERSION" /usr/share/bbt-os/VERSION
+    if [ -d "$HERE/assets/icons" ]; then
+        install -m 644 "$HERE/assets/icons/"*.svg /usr/share/bbt-os/icons/
+        log "Installed $(find /usr/share/bbt-os/icons -name '*.svg' | wc -l) launcher icons"
+    fi
 
     log "Installing launcher and command wrappers"
     cat >/usr/local/bin/bbt-os-launcher <<'EOF'

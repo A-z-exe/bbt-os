@@ -1,0 +1,17 @@
+# Wireless auditing toolchain
+aircrack-ng
+hcxdumptool
+hcxtools
+wifite
+reaver
+bully
+mdk4
+macchanger
+wireless-tools
+iw
+rfkill
+tshark
+bettercap
+kismet
+hashcat
+wordlists
