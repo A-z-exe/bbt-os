@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030708"/>
+      <stop offset="0.55" stop-color="#06120f"/>
+      <stop offset="1" stop-color="#020506"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+      <stop offset="0" stop-color="#39ff14" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#39ff14"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#0d2b28" stroke-width="1"/>
+    </pattern>
+    <pattern id="hex" width="120" height="104" patternUnits="userSpaceOnUse">
+      <path d="M30 2 L90 2 L118 52 L90 102 L30 102 L2 52 Z" fill="none" stroke="#123f38" stroke-width="1.2"/>
+    </pattern>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#hex)" opacity="0.35"/>
+  <rect width="1920" height="1080" fill="url(#grid)" opacity="0.3"/>
+  <circle cx="960" cy="430" r="700" fill="url(#glow)"/>
+
+  <g stroke="#145c4a" stroke-width="2" fill="none" opacity="0.5">
+    <path d="M0 1000 H240 L320 920 H560"/>
+    <path d="M1360 70 H1580 L1660 0 H1920"/>
+  </g>
+
+  <text x="900" y="150" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+        font-size="96" font-weight="bold" fill="#39ff14" letter-spacing="2">BBT</text>
+  <text x="1040" y="150" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+        font-size="44" font-weight="bold" fill="#22d3ee" letter-spacing="4">OS</text>
+  <text x="940" y="196" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+        font-size="20" fill="#d7fff1" letter-spacing="8">BUG BOUNTY TOOLKIT</text>
+  <rect x="700" y="214" width="480" height="3" fill="url(#neon)" opacity="0.8"/>
+
+  <rect x="360" y="270" width="1200" height="648" rx="20"
+        fill="#050f0d" fill-opacity="0.55" stroke="#145c4a" stroke-width="2"/>
+
+  <text x="960" y="1020" text-anchor="middle" font-family="DejaVu Sans Mono, monospace"
+        font-size="18" fill="#6fbfa8">BBT OS 1.0  ·  based on Kali Linux  ·  authorized targets only</text>
+  <rect x="40" y="40" width="1840" height="1000" rx="10" fill="none"
+        stroke="#123f38" stroke-width="1.5" opacity="0.4"/>
+</svg>

@@ -15,6 +15,7 @@ DO_WINDOWS=1
 DO_MOBSF=1
 DO_BBT=1
 DO_DESKTOP=1
+DO_BOOT=1
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -25,6 +26,7 @@ while [ $# -gt 0 ]; do
         --no-mobsf)   DO_MOBSF=0 ;;
         --no-bbt)     DO_BBT=0 ;;
         --no-desktop) DO_DESKTOP=0 ;;
+        --no-boot)    DO_BOOT=0 ;;
         --target-user) shift; BBT_TARGET_USER="${1:-}" ;;
         --target-user=*) BBT_TARGET_USER="${1#*=}" ;;
         --help|-h)
@@ -40,6 +42,7 @@ Usage: sudo bbt-os-refresh [options]
   --no-mobsf     skip the Docker/MobSF check
   --no-bbt       skip the BBT Toolkit update
   --no-desktop   skip relaunching/reinstalling desktop assets
+  --no-boot      skip refreshing boot splash and GRUB artwork
   --target-user USER  refresh user-level pieces for USER
   -h, --help     show this help
 EOF
@@ -101,6 +104,13 @@ if [ "$DO_DESKTOP" = 1 ]; then
     # shellcheck source=modules/desktop.sh
     source "$HERE/modules/desktop.sh"
     install_desktop
+fi
+if [ "$DO_BOOT" = 1 ]; then
+    # artwork only: the theme is already in the initramfs
+    BBT_BOOT_DEEP=0
+    # shellcheck source=modules/boot.sh
+    source "$HERE/modules/boot.sh"
+    install_boot_branding
 fi
 
 echo "=== refresh done: $(date -Is) ==="

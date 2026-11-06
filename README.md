@@ -34,6 +34,8 @@ Kali tooling, repositories and updates keep working normally.
 Additional desktop work:
 
 - Hostname `bbt-os`, `os-release` pretty name and MOTD/issue branding.
+- BBT OS boot splash (Plymouth) and boot-menu artwork (GRUB) replace the Kali
+  dragon at boot, with a neon progress bar and password prompt.
 - Sleep, suspend, hibernate, screen blanking and lock disabled for long scans.
 - VMware cursor fix (Adwaita cursor, `xsetroot` at login and `SWcursor` Xorg
   fallback for guests where `vmwgfx` loses the hardware cursor plane).
@@ -67,6 +69,7 @@ reach the graphical session.
 --no-bbt           skip the BBT Toolkit checkout
 --no-desktop       skip launcher, wallpaper and file associations
 --no-branding      skip hostname, os-release, issue and MOTD
+--no-boot          skip the BBT OS boot splash and GRUB artwork
 --web-only         web tooling only
 --target-user USER choose the desktop user (default: SUDO_USER)
 ```
@@ -190,7 +193,7 @@ This runs `apt update`, upgrades packages, refreshes nuclei templates, WPScan,
 ExploitDB, nmap scripts and pipx tools, updates the BBT checkout, and reapplies
 the desktop assets. Use `--no-upgrade` to skip the distro upgrade, or
 `--no-web`, `--no-android`, `--no-windows`, `--no-mobsf`, `--no-bbt`,
-`--no-desktop` to skip a group.
+`--no-desktop`, `--no-boot` to skip a group.
 
 ## Uninstall
 
@@ -199,7 +202,8 @@ sudo bash uninstall.sh
 ```
 
 This removes the launcher, wallpaper, desktop entries, wrappers and branding,
-and restores the original identity files from `/var/backups/bbt-os`. Installed
+restores the original identity files and boot artwork from
+`/var/backups/bbt-os`, and sets the Kali Plymouth/GRUB theme back. Installed
 apt tools and the BBT Toolkit checkout are intentionally left in place.
 
 ## Cursor is not visible (VMware)
@@ -222,10 +226,10 @@ refresh.sh              package + database + toolkit refresh
 uninstall.sh            remove the overlay, restore identity
 VERSION                 build identity
 AUTHORS.md, LICENSE     developer and license
-assets/                 launcher icon and wallpaper (SVG)
+assets/                 launcher icon, wallpaper, Plymouth splash and GRUB art (SVG/PNG)
 branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
-modules/                web, android, windows, mobsf, bbt, desktop, branding
+modules/                web, android, windows, mobsf, bbt, desktop, branding, boot
 packages/               apt package manifests per tool group
 scripts/                wallpaper, cursor, double-click installer, MobSF helper
 share/                  AppImage and .run MIME definitions

@@ -59,6 +59,36 @@ fi
 
 systemctl unmask sleep.target suspend.target hibernate.target hybrid-sleep.target >/dev/null 2>&1 || true
 
+if [ -d "$BACKUP_DIR" ]; then
+    rm -rf /usr/share/plymouth/themes/bbt-os
+    if [ -f "$BACKUP_DIR/boot-restore.tsv" ]; then
+        echo "[*] Restoring original boot artwork"
+        while IFS=$'\t' read -r target backup; do
+            [ -f "$BACKUP_DIR/$backup" ] && cp -a "$BACKUP_DIR/$backup" "$target"
+        done <"$BACKUP_DIR/boot-restore.tsv"
+        rm -f "$BACKUP_DIR/boot-restore.tsv"
+    else
+        # backups written before boot-restore.tsv existed
+        for theme_dir in /boot/grub/themes/kali /usr/share/grub/themes/kali; do
+            [ -d "$theme_dir" ] || continue
+            [ -f "$BACKUP_DIR/grub-4x3.kali.png" ] \
+                && cp -a "$BACKUP_DIR/grub-4x3.kali.png" "$theme_dir/grub-4x3.png"
+            [ -f "$BACKUP_DIR/grub-16x9.kali.png" ] \
+                && cp -a "$BACKUP_DIR/grub-16x9.kali.png" "$theme_dir/grub-16x9.png"
+            [ -f "$BACKUP_DIR/theme.kali.txt" ] \
+                && cp -a "$BACKUP_DIR/theme.kali.txt" "$theme_dir/theme.txt"
+        done
+    fi
+    if [ -f "$BACKUP_DIR/plymouthd.conf.orig" ]; then
+        cp -a "$BACKUP_DIR/plymouthd.conf.orig" /etc/plymouth/plymouthd.conf
+        rm -f "$BACKUP_DIR/plymouthd.conf.orig"
+    fi
+    if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+        plymouth-set-default-theme kali -R >/dev/null 2>&1 || true
+    fi
+    command -v update-grub >/dev/null 2>&1 && update-grub >/dev/null 2>&1 || true
+fi
+
 echo "[*] BBT OS overlay removed."
 echo "    Apt tools and ~/tools/BugBountyToolkit were left installed."
 echo "    Log out and back in to restore the Kali session identity."

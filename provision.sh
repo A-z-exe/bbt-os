@@ -19,6 +19,7 @@ DO_MOBSF=1
 DO_BBT=1
 DO_DESKTOP=1
 DO_BRANDING=1
+DO_BOOT=1
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -30,6 +31,7 @@ while [ $# -gt 0 ]; do
         --no-bbt)      DO_BBT=0 ;;
         --no-desktop)  DO_DESKTOP=0 ;;
         --no-branding) DO_BRANDING=0 ;;
+        --no-boot)     DO_BOOT=0 ;;
         --web-only)    DO_ANDROID=0; DO_WINDOWS=0; DO_MOBSF=0 ;;
         --target-user) shift; BBT_TARGET_USER="${1:-}" ;;
         --target-user=*) BBT_TARGET_USER="${1#*=}" ;;
@@ -47,6 +49,7 @@ Usage: sudo bash install.sh [options]
   --no-bbt           skip the BBT Toolkit checkout
   --no-desktop       skip launcher, wallpaper and file associations
   --no-branding      skip hostname, os-release, issue and MOTD
+  --no-boot          skip the BBT OS boot splash and GRUB artwork
   --web-only         web tooling only (no Android, Windows or MobSF)
   --target-user USER install user-level pieces for USER (default: SUDO_USER)
   -h, --help         show this help
@@ -141,6 +144,11 @@ if [ "$DO_BRANDING" = 1 ]; then
     # shellcheck source=modules/branding.sh
     source "$HERE/modules/branding.sh"
     install_branding
+fi
+if [ "$DO_BOOT" = 1 ]; then
+    # shellcheck source=modules/boot.sh
+    source "$HERE/modules/boot.sh"
+    install_boot_branding
 fi
 
 # ---------------------------------------------------------------------------
