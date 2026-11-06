@@ -27,6 +27,9 @@ for arg in "$@"; do
     esac
 done
 
+# --summary is consumed by the launcher status bar: one line, no report body.
+[ "$SUMMARY" = 1 ] && QUIET=1
+
 PASS=0
 WARN=0
 FAIL=0

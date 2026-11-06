@@ -262,12 +262,15 @@ cmd_plan() {
     : "${wps:=0}"
     [ -n "$iface" ] || iface=$(default_iface 2>/dev/null || echo "(none)")
     [ "$method" = auto ] && method=$(pick_method "$security" "$wps")
+    local drv
+    drv=$(driver_of "$iface" 2>/dev/null | head -n1)
+    [ -n "$drv" ] || drv="?"
 
     printf 'target     %s\n' "$ssid"
     printf 'bssid      %s\n' "$bssid"
     printf 'channel    %s\n' "$channel"
     printf 'security   %s%s\n' "$security" "$([ "$wps" = 1 ] && echo ' + WPS' || true)"
-    printf 'adapter    %s (%s)\n' "$iface" "$(driver_of "$iface" 2>/dev/null || echo '?')"
+    printf 'adapter    %s (%s)\n' "$iface" "$drv"
     printf 'method     %s -> %s\n' "$method" "$(tool_for_method "$method")"
     case "$method" in
         pmkid|sae)
@@ -301,6 +304,10 @@ cmd_crack() {
             --runtime) runtime=$2; shift 2 ;;
             --no-rules) rules=""; shift ;;
             --show) show=1; shift ;;
+            -h|--help)
+                printf 'usage: bbt-wifi crack --hash FILE [--wordlist FILE] [--runtime SECONDS]\n'
+                printf '                       [--no-rules] [--show]\n'
+                return 0 ;;
             *) die "unknown crack option: $1" ;;
         esac
     done
@@ -534,9 +541,16 @@ cmd_attack() {
     [[ "$timeout_s" =~ ^[0-9]+$ ]] && [ "$timeout_s" -ge 30 ] && [ "$timeout_s" -le 3600 ] \
         || die "--timeout must be 30..3600 seconds"
 
-    [ -n "$iface" ] || iface=$(default_iface) || die "no wireless adapter; see bbt-wifi status"
-    is_wireless "$iface" || die "$iface is not a wireless interface"
-    monitor_support "$iface" || die "$iface does not support monitor mode; use a supported adapter"
+    [ -n "$iface" ] || iface=$(default_iface)
+    if [ -n "$iface" ]; then
+        is_wireless "$iface" || die "$iface is not a wireless interface"
+        monitor_support "$iface" || die "$iface does not support monitor mode; use a supported adapter"
+    elif [ "$dry" = 1 ]; then
+        warn "no wireless adapter visible; dry run plans without hardware"
+        iface="(none)"
+    else
+        die "no wireless adapter; see bbt-wifi status"
+    fi
     IFACE=$iface
 
     if [ -z "$bssid" ]; then
