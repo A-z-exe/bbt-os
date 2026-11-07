@@ -519,6 +519,12 @@ def build_actions() -> list[dict]:
     add("System", "Health doctor", "Full BBT OS audit with a fix option",
         "bbt-os-doctor", "bbt-os-doctor", icon="pulse",
         keywords="doctor health audit diagnose fix")
+    add("System", "Scan tuning report", "Current vs recommended network limits",
+        "bbt-ktune 2>&1 | head -n 30", "bbt-ktune", icon="cpu",
+        keywords="kernel sysctl tuning network limits scanning")
+    add("System", "Apply scan tuning", "Raise limits for high-concurrency scans",
+        "sudo bbt-ktune --apply", "bbt-ktune", icon="gear",
+        keywords="apply kernel tuning sudo sysctl concurrency")
 
     # ----------------------------------------------------------- Reporting
     add("Reporting", "BBT help", "Show every BBT mode and option",
@@ -543,6 +549,18 @@ def build_actions() -> list[dict]:
     add("Reporting", "Open recon files", "Open ~/bbt/recon",
         f"mkdir -p {shlex.quote(str(RECON_DIR))} && xdg-open {shlex.quote(str(RECON_DIR))}",
         gui=True, icon="folder")
+    add("Reporting", "Bounty income status", "Ledger totals, acceptance rate and paid amount",
+        "bbt-bounty status 2>&1; echo; "
+        "echo 'new program: bbt-bounty init --program NAME --scope ~/scope.txt --authorized'",
+        "bbt-bounty", icon="graph",
+        keywords="bounty income money earned ledger paid acceptance report")
+    add("Reporting", "Open bounty workspace", "Programs, reports, evidence and ledger",
+        f"mkdir -p {shlex.quote(str(HOME / 'bbt' / 'bounty'))} && "
+        f"xdg-open {shlex.quote(str(HOME / 'bbt' / 'bounty'))}",
+        gui=True, icon="folder", keywords="bounty programs reports evidence ledger")
+    add("Reporting", "Report quality gate", "Scope, PoC, evidence and excluded classes",
+        "bbt-bounty help 2>&1 | head -n 40", "bbt-bounty", icon="doc",
+        keywords="report gate check scope poc evidence submit")
 
     # -------------------------------------------------------------- Updates
     add("Updates", "Refresh BBT OS", "apt update, tool updates and database refresh",
@@ -1717,6 +1735,8 @@ def main() -> int:
         print(f"\nengines: bbt-wifi={'ok' if which('bbt-wifi') else 'missing'} "
               f"bbt-workflow={'ok' if which('bbt-workflow') else 'missing'} "
               f"bbt-surface={'ok' if which('bbt-surface') else 'missing'} "
+              f"bounty={'ok' if which('bbt-bounty') else 'missing'} "
+              f"ktune={'ok' if which('bbt-ktune') else 'missing'} "
               f"doctor={'ok' if which('bbt-os-doctor') else 'missing'}")
         print(f"icons: {', '.join(str(path) for path in icon_dirs()) or 'none'}")
         print(f"tools: {present}/{len(tools)}")

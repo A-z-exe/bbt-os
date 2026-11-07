@@ -284,7 +284,7 @@ else
     warn "BBT toolkit" "not installed in $TH/tools"
 fi
 
-for helper in bbt-wifi bbt-workflow bbt-surface bbt-android-recovery bbt-smartcard bbt-os-launcher; do
+for helper in bbt-wifi bbt-workflow bbt-surface bbt-bounty bbt-ktune bbt-android-recovery bbt-smartcard bbt-os-launcher; do
     if [ -x "/usr/local/bin/$helper" ] || [ -x "$TH/.local/bin/$helper" ]; then
         pass "$helper" "installed"
     else

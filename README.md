@@ -32,7 +32,8 @@ Kali tooling, repositories and updates keep working normally.
 | **Windows / AD** | Impacket, NetExec, Evil-WinRM, Responder, Enum4linux-ng, BloodHound.py |
 | **Smart card / NFC** | PC/SC readers (`pcsc_scan`, OpenSC), ATR and PKCS#15/PIV certificates, NFC tag scan, NDEF read/write and MIFARE dump (authorized cards only) |
 | **Workflows** | `bbt-workflow`: matched chains `web`, `wordpress`, `android`, `ad`, every host checked against the scope file; `bbt-surface`: scope-gated header, discovery and JavaScript bundle audit with a report draft |
-| **Kernel / drivers** | headers, DKMS build tools, Wi-Fi/NFC firmware, `cfg80211`/`mac80211`/`nfc` modules, regdb, `rfkill`, open-vm-tools |
+| **Bounty / income** | `bbt-bounty`: program workspaces, path-aware scope, report quality gate (PoC, evidence, impact, excluded classes), CVSS v3.1 scoring, submission ledger and per-program earnings |
+| **Kernel / drivers** | headers, DKMS build tools, Wi-Fi/NFC firmware, `cfg80211`/`mac80211`/`nfc` modules, regdb, `rfkill`, open-vm-tools, `bbt-ktune` for reversible scan tuning |
 | **Toolkit** | [BBT Toolkit](https://github.com/A-z-exe/BugBountyToolkit) with scope-gated `-m auto` orchestration |
 | **Desktop** | searchable neon GTK launcher with a designed 43-icon set, live status footer, BBT wallpaper, menu entry, double-click installers |
 | **Health** | `bbt-os-doctor` audits kernel, services, adapters, toolchain, data and integrations, with `--fix` |
@@ -340,6 +341,32 @@ Signals are written to `findings.txt` and clearly marked as *to verify*; the
 tool never claims a vulnerability on its own. Output goes to
 `~/bbt/runs/surface-<host>-<time>/` and `~/bbt/runs/latest-surface`.
 
+## Bounty workspace
+
+`bbt-bounty` is the part that turns a run into income: one folder per program,
+a gate that blocks submissions the program will reject, and a ledger that shows
+what was submitted, accepted and paid.
+
+```bash
+bbt-bounty init --program spara --scope ~/scope.txt --authorized --test-ip 203.0.113.7 --currency IRR
+bbt-bounty new --title "IDOR in link statistics" --target https://app.example.com/stats/123
+bbt-bounty check ~/bbt/bounty/spara/reports/2026-11-08-idor.md
+bbt-bounty submit ~/bbt/bounty/spara/reports/2026-11-08-idor.md --status accepted --bounty 8500000
+bbt-bounty status
+```
+
+| Command | Purpose |
+| --- | --- |
+| `init` | creates `~/bbt/bounty/<slug>/` with a copy of the scope, a report template and an empty ledger; needs `--authorized` |
+| `new` | scaffolds a report with target, CVSS, test IP and required sections, and refuses targets outside the scope |
+| `check` | blocks missing scope match, missing `Test IP`, missing sections, missing evidence files, scanner-only output, duplicate title+target, invalid CVSS, and (profile `ravro`) headers, TLS, brute force, DoS, WordPress, version and CORS-without-exploit findings |
+| `submit` | re-runs the gate, copies the report into the program and appends date, id, status, severity, score, bounty, currency and target to `ledger.tsv` |
+| `status` | report counts by status, acceptance rate and paid total/average |
+| `cvss` | CVSS v3.1 base score and severity from a vector, so the declared severity matches the score |
+
+Only reports that pass the gate are recorded, and `--force` is available for a
+deliberate override. The tool never contacts a target and never invents data.
+
 ## Kernel and drivers
 
 `modules/kernel.sh` installs DKMS build tools, Wi-Fi/NFC firmware, wireless
@@ -357,6 +384,24 @@ Kali sometimes publishes headers for a newer kernel than the one that is
 running. When no headers exist for the running kernel, the module installs the
 newest available `linux-headers-*kali-amd64` and notes that DKMS modules build
 after rebooting into the matching kernel. The module never removes a kernel.
+
+### Scan tuning
+
+`bbt-ktune` raises socket, backlog, ephemeral-port and conntrack limits that
+matter when nmap, masscan, ffuf or nuclei open thousands of connections at
+once. It is read-only by default and reversible:
+
+```bash
+bbt-ktune                      # current vs recommended values
+bbt-ktune --plan               # the exact sysctl drop-in
+sudo bbt-ktune --apply         # backs up old values, writes /etc/sysctl.d/90-bbt-scan.conf
+sudo bbt-ktune --revert        # restores the newest backup and removes the drop-in
+```
+
+Only limits are raised. SYN cookies, `rp_filter`, ASLR and every other
+protection stay enabled; the tuner never disables a security control to gain
+throughput. Values that the running kernel does not expose (for example
+conntrack without the module) are skipped.
 
 ## Health doctor
 
@@ -480,7 +525,7 @@ branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
 modules/                web, wifi, workflows, kernel, android, windows, smartcard, mobsf, bbt, audit, desktop, lockscreen, branding, boot
 packages/               apt package manifests per tool group
-scripts/                bbt-wifi, bbt-workflow, bbt-surface, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
+scripts/                bbt-wifi, bbt-workflow, bbt-surface, bbt-bounty, bbt-ktune, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
 share/                  AppImage and .run MIME definitions
 ```
 

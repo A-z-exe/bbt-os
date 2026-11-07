@@ -49,6 +49,9 @@ EOF
         warn "open-vm-tools not active (normal outside VMware)"
     fi
 
+    install -m 755 "$HERE/scripts/bbt-ktune.sh" /usr/local/bin/bbt-ktune
+    ok "bbt-ktune ready: raise network limits for high-concurrency scans"
+
     if command -v rfkill >/dev/null 2>&1; then
         rfkill unblock wifi 2>/dev/null || true
         rfkill unblock bluetooth 2>/dev/null || true
