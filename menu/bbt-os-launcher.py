@@ -34,7 +34,7 @@ SCOPE_FILE = HOME / "scope.txt"
 RECON_DIR = HOME / "bbt" / "recon"
 WIFI_DIR = HOME / "bbt" / "wifi"
 RUNS_DIR = HOME / "bbt" / "runs"
-GITHUB = "https://github.com/A-z-exe"
+GITHUB = "https://github.com/A-z-exe/bbt-os"
 EMAIL = "207771865+A-z-exe@users.noreply.github.com"
 
 
@@ -1688,7 +1688,7 @@ class BBTWindow(Gtk.Window):
             "Every attack stays inside the scope you declare."
         )
         dialog.set_website(GITHUB)
-        dialog.set_website_label("github.com/A-z-exe")
+        dialog.set_website_label("github.com/A-z-exe/bbt-os")
         dialog.set_authors(["AmirHossein Zarei <" + EMAIL + ">"])
         dialog.set_license_type(Gtk.License.MIT_X11)
         logo = icon_pixbuf("terminal", 96)
