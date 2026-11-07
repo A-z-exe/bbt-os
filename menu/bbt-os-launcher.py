@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import gi
@@ -430,6 +431,10 @@ def build_actions() -> list[dict]:
         keywords="apk android jadx apktool endpoints secrets")
     add("Android", "ADB devices", "List connected Android devices",
         "adb devices -l", "adb", icon="usb", keywords="adb android usb")
+    add("Android", "Device recovery",
+        "Lock state, data copy or lock removal on a phone you own",
+        tool="bbt-android-recovery", icon="unlock", dialog="android_recovery",
+        keywords="android recovery lock screen pin pattern unlock data copy phone")
     add("Android", "APK decompile (apktool)", "Choose an APK and decompile it",
         "", "apktool", icon="package", keywords="apk apktool decompile")
     add("Android", "APK open (JADX GUI)", "Choose an APK and open JADX GUI",
@@ -822,6 +827,8 @@ class BBTWindow(Gtk.Window):
             self.dialog_ad()
         elif dialog == "android":
             self.dialog_android()
+        elif dialog == "android_recovery":
+            self.dialog_android_recovery()
         elif dialog == "wifi":
             self.dialog_wifi(action.get("preset", "attack"))
         elif action["name"] == "APK decompile (apktool)":
@@ -1138,6 +1145,161 @@ class BBTWindow(Gtk.Window):
             shlex.join(["bbt-workflow", "android", "--apk", apk]),
             self,
         )
+
+    def dialog_android_recovery(self) -> None:
+        if not which("bbt-android-recovery"):
+            show_error(
+                "The device recovery helper is not installed.\n\n"
+                "Run: sudo bbt-os-refresh --no-upgrade",
+                self,
+            )
+            return
+        dialog = Gtk.Dialog(title="Device recovery", transient_for=self, modal=True)
+        dialog.add_buttons(
+            "Close", Gtk.ResponseType.CLOSE,
+            "Status", 10,
+            "Plan", 11,
+            "Copy data", 12,
+            "Remove lock", 13,
+            "Linux phone", 14,
+        )
+        dialog.set_default_size(600, -1)
+        box = dialog.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(14)
+        intro = Gtk.Label(
+            label=(
+                "Non-destructive first. The helper never wipes, flashes or unlocks a bootloader.\n"
+                "Removing a lock without data loss works only when ADB is already authorized "
+                "and root is available. Otherwise use the vendor or the Linux-phone steps."
+            ),
+            xalign=0,
+        )
+        intro.set_line_wrap(True)
+        box.pack_start(intro, False, False, 0)
+        rule = Gtk.Label(
+            label="Only for devices you own or have written authorization to service.",
+            xalign=0,
+        )
+        rule.set_line_wrap(True)
+        rule.get_style_context().add_class("warn")
+        box.pack_start(rule, False, False, 0)
+        dialog.show_all()
+        response = dialog.run()
+        dialog.destroy()
+        if response == 10:
+            launch_terminal("Android device status", "bbt-android-recovery status", self)
+        elif response == 11:
+            launch_terminal("Android lock plan", "bbt-android-recovery plan", self)
+        elif response == 12:
+            self.dialog_android_pull()
+        elif response == 13:
+            self.dialog_android_unlock()
+        elif response == 14:
+            launch_terminal("Linux phone recovery", "bbt-android-recovery linux", self)
+
+    def dialog_android_pull(self) -> None:
+        dialog = Gtk.Dialog(title="Copy device data", transient_for=self, modal=True)
+        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Start", Gtk.ResponseType.OK)
+        dialog.set_default_size(620, -1)
+        box = dialog.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(14)
+        note = Gtk.Label(
+            label=(
+                "Copies photos, downloads and documents from an authorized device. "
+                "Private app data stays encrypted and is not included."
+            ),
+            xalign=0,
+        )
+        note.set_line_wrap(True)
+        note.get_style_context().add_class("muted")
+        box.pack_start(note, False, False, 0)
+        dest_entry = Gtk.Entry()
+        dest_entry.set_text(
+            str(HOME / "bbt" / "android" / f"backup-{time.strftime('%Y%m%d-%H%M%S')}")
+        )
+        box.pack_start(field_row("Destination", dest_entry), False, False, 0)
+        owned = Gtk.CheckButton(
+            label="I own this device or have written authorization to copy its data"
+        )
+        box.pack_start(owned, False, False, 0)
+        dialog.show_all()
+        response = dialog.run()
+        dest = os.path.expanduser(dest_entry.get_text().strip())
+        consent = owned.get_active()
+        dialog.destroy()
+        if response != Gtk.ResponseType.OK:
+            return
+        if not dest:
+            show_error("Choose a destination directory.", self)
+            return
+        if not consent:
+            show_error("Tick the ownership checkbox first.", self)
+            return
+        launch_terminal(
+            "Android data copy",
+            shlex.join(["bbt-android-recovery", "pull", "--dest", dest,
+                        "--i-own-this-device"]),
+            self,
+        )
+
+    def dialog_android_unlock(self) -> None:
+        dialog = Gtk.Dialog(title="Remove screen lock", transient_for=self, modal=True)
+        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Remove lock", Gtk.ResponseType.OK)
+        dialog.set_default_size(600, -1)
+        box = dialog.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(14)
+        warning = Gtk.Label(
+            label=(
+                "Only works when the phone is already rooted and ADB is authorized. "
+                "The credential is cleared with locksettings and user data is kept. "
+                "A locked bootloader cannot be bypassed here."
+            ),
+            xalign=0,
+        )
+        warning.set_line_wrap(True)
+        warning.get_style_context().add_class("warn")
+        box.pack_start(warning, False, False, 0)
+        serial_entry = Gtk.Entry()
+        serial_entry.set_placeholder_text("serial from adb devices (optional)")
+        box.pack_start(field_row("Serial", serial_entry), False, False, 0)
+        owned = Gtk.CheckButton(
+            label="I own this device or have written authorization to service it"
+        )
+        box.pack_start(owned, False, False, 0)
+        dialog.show_all()
+        response = dialog.run()
+        serial = serial_entry.get_text().strip()
+        consent = owned.get_active()
+        dialog.destroy()
+        if response != Gtk.ResponseType.OK:
+            return
+        if serial and not re.fullmatch(r"[A-Za-z0-9._:-]{1,64}", serial):
+            show_error("Serial looks invalid. Copy it from adb devices.", self)
+            return
+        if not consent:
+            show_error("Tick the ownership checkbox first.", self)
+            return
+        confirm = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Clear the screen lock on this device?",
+        )
+        confirm.format_secondary_text(
+            "User data stays in place. Continue only for a device you own."
+        )
+        approved = confirm.run() == Gtk.ResponseType.YES
+        confirm.destroy()
+        if not approved:
+            return
+        command = ["bbt-android-recovery", "unlock", "--i-own-this-device"]
+        if serial:
+            command += ["--serial", serial]
+        launch_terminal("Remove Android lock", shlex.join(command), self)
 
     # -- wireless
     def dialog_wifi(self, preset: str) -> None:

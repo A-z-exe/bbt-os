@@ -26,4 +26,8 @@ install_android() {
     fi
 
     run_as_user adb start-server >/dev/null 2>&1 || true
+
+    install -m 755 "$HERE/scripts/bbt-android-recovery.sh" /usr/local/bin/bbt-android-recovery
+    install -d -o "$TARGET_USER" -g "$TARGET_GROUP" "$TARGET_HOME/bbt/android"
+    ok "bbt-android-recovery ready: status, plan, pull, unlock (owned devices), linux"
 }

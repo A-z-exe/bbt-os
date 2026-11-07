@@ -126,6 +126,12 @@ ICONS["key"] = """
 <path d="M11 11 20 20M17.2 17.2l2-2M14.6 14.6l1.8-1.8" />
 <path d="M6.4 8h3.2" stroke="#22d3ee"/>
 """
+ICONS["unlock"] = """
+<rect x="4.5" y="10.5" width="15" height="9.5" rx="2"/>
+<path d="M8.5 10.5V7a4 4 0 0 1 7.7-1.5" stroke="#22d3ee"/>
+<circle cx="12" cy="14.6" r="1.2"/>
+<path d="M12 15.8v1.8"/>
+"""
 ICONS["shield"] = """
 <path d="M12 3 19 6v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z"/>
 <path d="M8.8 12.2l2.1 2.1 4.3-4.4" stroke="#22d3ee"/>
@@ -245,6 +251,6 @@ ICONS["routerlock"] = """
 """
 
 for name, body in ICONS.items():
-    (OUT / f"{name}.svg").write_text(svg(body.strip()), encoding="utf-8")
+    (OUT / f"{name}.svg").write_text(svg(body.strip()), encoding="utf-8", newline="\n")
 
 print(f"{len(ICONS)} icons written to {OUT}")

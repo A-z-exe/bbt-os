@@ -23,7 +23,7 @@ rm -f /usr/local/bin/bbt-os-launcher /usr/local/bin/bbt-os \
       /usr/local/bin/bbt-os-install-file /usr/local/bin/bbt-os-cursor \
       /usr/local/bin/bbt-smartcard /usr/local/bin/mobsf \
       /usr/local/bin/bbt-wifi /usr/local/bin/bbt-workflow \
-      /usr/local/bin/bbt-os-doctor
+      /usr/local/bin/bbt-android-recovery /usr/local/bin/bbt-os-doctor
 rm -f /usr/share/applications/bbt-os.desktop \
       /usr/share/applications/bbt-os-installer.desktop
 rm -f /etc/xdg/autostart/bbt-os-*.desktop

@@ -284,8 +284,12 @@ else
     warn "BBT toolkit" "not installed in $TH/tools"
 fi
 
-for helper in bbt-wifi bbt-workflow bbt-smartcard bbt-os-launcher; do
-    if [ -x "/usr/local/bin/$helper" ]; then pass "$helper" "installed"; else warn "$helper" "not installed"; fi
+for helper in bbt-wifi bbt-workflow bbt-android-recovery bbt-smartcard bbt-os-launcher; do
+    if [ -x "/usr/local/bin/$helper" ] || [ -x "$TH/.local/bin/$helper" ]; then
+        pass "$helper" "installed"
+    else
+        warn "$helper" "not installed"
+    fi
 done
 [ -d /usr/share/bbt-os/icons ] && pass "BBT icon theme" "$(ls /usr/share/bbt-os/icons/*.svg 2>/dev/null | wc -l) icons" \
     || warn "BBT icon theme" "not installed"
