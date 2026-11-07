@@ -371,7 +371,13 @@ REPORT_DIR=$(cd "$(dirname "$REPORT")" && pwd)
 mapfile -t REFS < <(grep -oE 'evidence/[A-Za-z0-9._%/-]+' "$REPORT" | sed 's/[.,;:)]$//' | sort -u)
 badref=0
 for r in "${REFS[@]}"; do
-    [ -f "$REPORT_DIR/$r" ] || { block "evidence file missing: $r"; badref=1; }
+    if [ -f "$REPORT_DIR/$r" ]; then
+        :
+    elif [ -f "$REPORT_DIR/../$r" ]; then
+        :
+    else
+        block "evidence file missing: $r"; badref=1
+    fi
 done
 if [ "${#REFS[@]}" -eq 0 ]; then
     if grep -qE '^[[:space:]]*(curl|GET |POST |PUT |PATCH |DELETE )' "$REPORT"; then
@@ -427,13 +433,20 @@ if [ "$PROF" = ravro ]; then
     case "$BODY" in
         *cors*)
             case "$BODY" in
-                *"exploit"*|*"exfiltrat"*|*"credential"*) : ;;
+                *"exploited"*|*"exfiltrat"*|*"credential"*) : ;;
                 *) block "CORS finding without a demonstrated exploit (Ravro excludes it)" ;;
             esac ;;
     esac
     case "$BODY" in
         *"dns rebinding"*|*"dns-only ssrf"*)
             block "Ravro excludes DNS-only SSRF/rebinding" ;;
+    esac
+    case "$BODY" in
+        *cookie*)
+            case "$BODY" in
+                *"session fixation"*|*"session hijack"*|*"account takeover"*|*"csrf"*|*"steal"*|*"exfiltrat"*|*"exploited"*|*"demonstrated impact"*) : ;;
+                *) block "Ravro excludes cookie-flag configuration findings without an exploit" ;;
+            esac ;;
     esac
 fi
 
@@ -492,6 +505,12 @@ esac
 DEST="$PROG_DIR/reports/$(date +%F)-$SID.md"
 if [ "$(cd "$(dirname "$REPORT")" && pwd)" != "$(cd "$PROG_DIR/reports" && pwd)" ]; then
     cp "$REPORT" "$DEST"
+    for r in "${REFS[@]}"; do
+        src="$REPORT_DIR/$r"; [ -f "$src" ] || src="$REPORT_DIR/../$r"
+        [ -f "$src" ] || continue
+        mkdir -p "$PROG_DIR/$(dirname "$r")"
+        cp "$src" "$PROG_DIR/$r"
+    done
 else
     DEST=$(cd "$(dirname "$REPORT")" && pwd)/$(basename "$REPORT")
 fi

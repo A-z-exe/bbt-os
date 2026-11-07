@@ -119,6 +119,12 @@ case "$TARGET" in
     *) URL="https://$TARGET" ;;
 esac
 SCHEME=${URL%%://*}; HOST=$(norm_host "$URL")
+TARGET_PATH=$(norm_path "$URL")
+BASE="$SCHEME://$HOST"
+case "$TARGET_PATH" in
+    /) : ;;
+    *) BASE="$BASE${TARGET_PATH%/}" ;;
+esac
 scope_allows "$URL" "$SCOPE" || die "$HOST is NOT inside $SCOPE"
 auth_gate
 
@@ -197,7 +203,7 @@ looks_like() {
 }
 for p in robots.txt sitemap.xml .well-known/security.txt .git/HEAD .env package.json; do
     safe=$(printf '%s' "$p" | tr '/.' '__')
-    fetch_in_scope "$SCHEME://$HOST/$p" "$RUN/evidence/$safe"
+    fetch_in_scope "$BASE/$p" "$RUN/evidence/$safe"
     code=$(cat "$RUN/evidence/$safe.code" 2>/dev/null || echo 000)
     size=$(wc -c <"$RUN/evidence/$safe" 2>/dev/null || echo 0)
     printf '%-28s %s %s bytes\n' "$p" "$code" "$size" >>"$RUN/discovery.txt"
@@ -225,7 +231,7 @@ while IFS= read -r src; do
         http://*|https://*) burl=$src ;;
         //*) burl="$SCHEME:$src" ;;
         /*) burl="$SCHEME://$HOST$src" ;;
-        *) burl="$SCHEME://$HOST/$src" ;;
+        *) burl="$BASE/$src" ;;
     esac
     case "$burl" in
         http*|"$SCHEME"://*) scope_allows "$burl" "$SCOPE" || continue ;;
@@ -234,7 +240,7 @@ while IFS= read -r src; do
     "${CURL[@]}" --max-filesize 6000000 -o "$RUN/evidence/bundle-$n.js" "$burl" 2>/dev/null || true
     f="$RUN/evidence/bundle-$n.js"
     [ -f "$f" ] || continue
-    grep -oE 'sourceMappingURL=[^[:space:]]+' "$f" | awk -v s="$src" '{print s " -> " $0}' >>"$RUN/maps.txt"
+    grep -oE 'sourceMappingURL=[^[:space:]"]+' "$f" | grep -E '\.map$' | awk -v s="$src" '{print s " -> " $0}' >>"$RUN/maps.txt"
     grep -oE '(https?://[A-Za-z0-9._-]+(:[0-9]+)?)' "$f" | sort -u >>"$RUN/api-hosts.txt"
     grep -oE '(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|gh[pousr]_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})' "$f" \
         | awk -v s="$(basename "$src")" '{print s ": " $0}' >>"$RUN/secrets.txt"
@@ -248,7 +254,11 @@ sort -u "$RUN/secrets.txt" -o "$RUN/secrets.txt"
 if [ -s "$RUN/maps.txt" ]; then
     while IFS= read -r line; do
         mpath=$(printf '%s' "$line" | sed -E 's/^.*sourceMappingURL=//')
-        case "$mpath" in http*|//*) continue ;; esac
+        case "$mpath" in
+            http*|//*|data:*) continue ;;
+            *.map) : ;;
+            *) continue ;;
+        esac
         mapurl="$SCHEME://$HOST${mpath#/}"
         "${CURL[@]}" -o /dev/null -w '%{http_code}' "$mapurl" 2>/dev/null \
             | grep -q '^200$' && printf 'exposed-source-map: %s\n' "$mpath" >>"$RUN/findings.txt"
