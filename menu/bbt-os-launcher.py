@@ -1716,6 +1716,7 @@ def main() -> int:
         present = sum(1 for tool in tools if which(tool))
         print(f"\nengines: bbt-wifi={'ok' if which('bbt-wifi') else 'missing'} "
               f"bbt-workflow={'ok' if which('bbt-workflow') else 'missing'} "
+              f"bbt-surface={'ok' if which('bbt-surface') else 'missing'} "
               f"doctor={'ok' if which('bbt-os-doctor') else 'missing'}")
         print(f"icons: {', '.join(str(path) for path in icon_dirs()) or 'none'}")
         print(f"tools: {present}/{len(tools)}")

@@ -31,7 +31,7 @@ Kali tooling, repositories and updates keep working normally.
 | **Android** | adb, fastboot, apktool, jadx + JADX GUI, apksigner, dex2jar, jd-gui, scrcpy, frida-tools, objection, MobSF (Docker), `bbt-android-recovery` for device state, data copy and owned-device lock removal |
 | **Windows / AD** | Impacket, NetExec, Evil-WinRM, Responder, Enum4linux-ng, BloodHound.py |
 | **Smart card / NFC** | PC/SC readers (`pcsc_scan`, OpenSC), ATR and PKCS#15/PIV certificates, NFC tag scan, NDEF read/write and MIFARE dump (authorized cards only) |
-| **Workflows** | `bbt-workflow`: matched chains `web`, `wordpress`, `android`, `ad`, every host checked against the scope file |
+| **Workflows** | `bbt-workflow`: matched chains `web`, `wordpress`, `android`, `ad`, every host checked against the scope file; `bbt-surface`: scope-gated header, discovery and JavaScript bundle audit with a report draft |
 | **Kernel / drivers** | headers, DKMS build tools, Wi-Fi/NFC firmware, `cfg80211`/`mac80211`/`nfc` modules, regdb, `rfkill`, open-vm-tools |
 | **Toolkit** | [BBT Toolkit](https://github.com/A-z-exe/BugBountyToolkit) with scope-gated `-m auto` orchestration |
 | **Desktop** | searchable neon GTK launcher with a designed 43-icon set, live status footer, BBT wallpaper, menu entry, double-click installers |
@@ -308,6 +308,29 @@ bbt-workflow ad --dc 10.0.0.10 --domain corp.local --scope ~/scope.txt --authori
 Add `--dry-run` to print the exact commands. Runs are written to
 `~/bbt/runs/<chain>-<target>-<time>/` with logs and `summary.md`.
 
+## Surface audit
+
+`bbt-surface` is the deliberate, low-noise counterpart to the chains: a few
+GET requests against one in-scope host, with every redirect re-checked against
+the scope file so the tool never follows a hop off-target.
+
+```bash
+bbt-surface --target https://app.example.com --scope ~/scope.txt --authorized
+bbt-surface --target https://app.example.com --scope ~/scope.txt --timeout 20 --authorized
+```
+
+| Step | What it records |
+| --- | --- |
+| Response | status, size, final headers, redirect chain |
+| Headers | missing CSP, HSTS, XFO, nosniff, Referrer-Policy, Permissions-Policy; cookies without Secure/HttpOnly/SameSite |
+| Discovery | `robots.txt`, `sitemap.xml`, `security.txt`, `.git/HEAD`, `.env`, `package.json`, with content checks to reject soft-404 pages |
+| JavaScript | `sourceMappingURL` references, external API hosts, secret patterns (AWS, Google, GitHub, Slack, JWT, private keys); referenced source maps probed for `200` |
+| Report | `summary.md` with a prefilled title/severity/steps/evidence/impact/remediation skeleton |
+
+Signals are written to `findings.txt` and clearly marked as *to verify*; the
+tool never claims a vulnerability on its own. Output goes to
+`~/bbt/runs/surface-<host>-<time>/` and `~/bbt/runs/latest-surface`.
+
 ## Kernel and drivers
 
 `modules/kernel.sh` installs DKMS build tools, Wi-Fi/NFC firmware, wireless
@@ -448,7 +471,7 @@ branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
 modules/                web, wifi, workflows, kernel, android, windows, smartcard, mobsf, bbt, audit, desktop, lockscreen, branding, boot
 packages/               apt package manifests per tool group
-scripts/                bbt-wifi, bbt-workflow, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
+scripts/                bbt-wifi, bbt-workflow, bbt-surface, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
 share/                  AppImage and .run MIME definitions
 ```
 
