@@ -2,9 +2,10 @@
 
 ## Developer
 
-**AmirHossein Zarei**
+**AmirHossein Zarei** (امیرحسین زارعی)
 
 - GitHub: [@A-z-exe](https://github.com/A-z-exe)
+- Project page: [a-z-exe.github.io/bbt-os](https://a-z-exe.github.io/bbt-os/)
 - Email: [207771865+A-z-exe@users.noreply.github.com](mailto:207771865+A-z-exe@users.noreply.github.com)
 - Role: creator and maintainer of BBT OS and BBT Toolkit
 

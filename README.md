@@ -16,8 +16,9 @@ Kali tooling, repositories and updates keep working normally.
 
 ## Developer
 
-- **AmirHossein Zarei** (A-z-exe)
+- **AmirHossein Zarei** (امیرحسین زارعی) - `A-z-exe`
 - GitHub: [github.com/A-z-exe](https://github.com/A-z-exe)
+- Project page: [a-z-exe.github.io/bbt-os](https://a-z-exe.github.io/bbt-os/)
 - Email: 207771865+A-z-exe@users.noreply.github.com
 - Upstream: [Kali Linux](https://www.kali.org/) by OffSec (not affiliated)
 
