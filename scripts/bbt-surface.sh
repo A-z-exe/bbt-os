@@ -23,7 +23,7 @@ die()  { printf '%s[x]%s %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 usage() {
-    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
     cat <<'EOF'
 
 Options:
@@ -32,6 +32,7 @@ Options:
   --authorized       skip the interactive confirmation
   --timeout SEC      per-request timeout (default 15)
   --max-bundles N    JavaScript bundles to inspect (default 6)
+  --check-scope URL  test a URL against the scope file and exit
 EOF
 }
 
@@ -39,19 +40,35 @@ norm_host() {
     printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#[/:?#].*$##' | tr 'A-Z' 'a-z'
 }
 
+norm_path() {
+    local ppath
+    ppath=$(printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]*##; s#[?#].*$##')
+    case "$ppath" in
+        /*) : ;;
+        *) ppath="/" ;;
+    esac
+    printf '%s' "$ppath"
+}
+
+# Scope entries are host or URL. A URL with a path only authorizes that path
+# prefix, so "https://api.example.com/srv/tinylink" does not unlock the host.
 scope_allows() {
-    local host file entry clean
-    host=$(norm_host "$1"); file=$2
+    local host ppath file entry ehost epath
+    host=$(norm_host "$1"); ppath=$(norm_path "$1"); file=$2
     [ -f "$file" ] || return 2
     while IFS= read -r entry || [ -n "$entry" ]; do
-        clean=$(printf '%s' "$entry" | sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-        [ -n "$clean" ] || continue
-        clean=$(norm_host "$clean")
-        [ "$host" = "$clean" ] && return 0
-        case "$clean" in
-            \*.*) case "$host" in *"${clean#\*}") return 0 ;; esac ;;
-            *)    case "$host" in *".$clean") return 0 ;; esac ;;
+        entry=$(printf '%s' "$entry" | sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+        [ -n "$entry" ] || continue
+        ehost=$(norm_host "$entry"); epath=$(norm_path "$entry")
+        case "$ehost" in
+            \**) case "$host" in *"${ehost#\*}" ) : ;; *) continue ;; esac ;;
+            *)   [ "$host" = "$ehost" ] || case "$host" in *".$ehost") : ;; *) continue ;; esac ;;
         esac
+        if [ "$epath" = "/" ] || [ "$epath" = "$ppath" ]; then
+            return 0
+        fi
+        case "$epath" in */) epath=${epath%/} ;; esac
+        case "$ppath" in "$epath"/*) return 0 ;; esac
     done <"$file"
     return 1
 }
@@ -63,7 +80,7 @@ auth_gate() {
     [ "$answer" = "AUTHORIZED" ] || die "aborted"
 }
 
-TARGET=""; SCOPE=""; AUTHORIZED=0; TIMEOUT=15; MAX_BUNDLES=6
+TARGET=""; SCOPE=""; AUTHORIZED=0; TIMEOUT=15; MAX_BUNDLES=6; CHECK=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --target) TARGET=${2:-}; shift 2 ;;
@@ -75,10 +92,23 @@ while [ $# -gt 0 ]; do
         --timeout=*) TIMEOUT=${1#*=}; shift ;;
         --max-bundles) MAX_BUNDLES=${2:-6}; shift 2 ;;
         --max-bundles=*) MAX_BUNDLES=${1#*=}; shift ;;
+        --check-scope) CHECK=${2:-}; shift 2 ;;
+        --check-scope=*) CHECK=${1#*=}; shift ;;
         -h|--help) usage; exit 0 ;;
         *) die "unknown option: $1 (try --help)" ;;
     esac
 done
+if [ -n "$CHECK" ]; then
+    [ -n "$SCOPE" ] || die "--scope is required"
+    [ -f "$SCOPE" ] || die "scope file not found: $SCOPE"
+    if scope_allows "$CHECK" "$SCOPE"; then
+        info "allowed: $CHECK"
+    else
+        warn "denied: $CHECK"
+        exit 1
+    fi
+    exit 0
+fi
 [ -n "$TARGET" ] || die "--target is required"
 [ -n "$SCOPE" ] || die "--scope is required"
 [ -f "$SCOPE" ] || die "scope file not found: $SCOPE"
@@ -89,7 +119,7 @@ case "$TARGET" in
     *) URL="https://$TARGET" ;;
 esac
 SCHEME=${URL%%://*}; HOST=$(norm_host "$URL")
-scope_allows "$HOST" "$SCOPE" || die "$HOST is NOT inside $SCOPE"
+scope_allows "$URL" "$SCOPE" || die "$HOST is NOT inside $SCOPE"
 auth_gate
 
 STAMP=$(date +%Y%m%d-%H%M%S)
@@ -105,7 +135,7 @@ printf 'target: %s\nscope: %s\nstarted: %s\n' "$URL" "$SCOPE" "$(date -Is)" >"$R
 
 # --- redirect-aware fetch, never leaving scope -----------------------------
 fetch_in_scope() {
-    local url=$1 out=$2 cur=$1 code loc host hops=0
+    local url=$1 out=$2 cur=$1 code loc next cur_host hops=0
     : >"$out.chain"
     while :; do
         rm -f "$out.hdr"
@@ -115,18 +145,19 @@ fetch_in_scope() {
         case "$code" in
             301|302|303|307|308)
                 printf '%s -> %s (%s)\n' "$cur" "$loc" "$code" >>"$out.chain"
-                host=$(norm_host "$loc")
-                [ -n "$host" ] || host=$(norm_host "$cur")
-                if ! scope_allows "$host" "$SCOPE"; then
-                    printf 'redirect-left-scope: %s -> %s\n' "$cur" "$loc" >>"$RUN/findings.txt"
-                    printf '%s\n' "$loc" >"$out.location"
+                cur_host=$(norm_host "$cur")
+                case "$loc" in
+                    http://*|https://*) next=$loc ;;
+                    //*) next="$SCHEME:$loc" ;;
+                    /*) next="$SCHEME://$cur_host$loc" ;;
+                    *) next="$SCHEME://$cur_host/$loc" ;;
+                esac
+                if ! scope_allows "$next" "$SCOPE"; then
+                    printf 'redirect-left-scope: %s -> %s\n' "$cur" "$next" >>"$RUN/findings.txt"
+                    printf '%s\n' "$next" >"$out.location"
                     return 0
                 fi
-                case "$loc" in
-                    http://*|https://*) cur=$loc ;;
-                    /*) cur="$SCHEME://$HOST$loc" ;;
-                    *) cur="$SCHEME://$HOST/$loc" ;;
-                esac
+                cur=$next
                 hops=$((hops + 1)); [ "$hops" -ge 5 ] && return 0
                 ;;
             *) printf '%s\n' "$loc" >"$out.location"; return 0 ;;
@@ -191,15 +222,13 @@ while IFS= read -r src; do
     [ -n "$src" ] || continue
     n=$((n + 1))
     case "$src" in
-        http://*|https://*) bhost=$(norm_host "$src"); scope_allows "$bhost" "$SCOPE" || continue ;;
-        //*) bhost=$(norm_host "$src"); scope_allows "$bhost" "$SCOPE" || continue ;;
-        /*) bhost=$HOST ;;
-        *) bhost=$HOST; src="/$src" ;;
-    esac
-    case "$src" in
         http://*|https://*) burl=$src ;;
         //*) burl="$SCHEME:$src" ;;
-        *) burl="$SCHEME://$HOST$src" ;;
+        /*) burl="$SCHEME://$HOST$src" ;;
+        *) burl="$SCHEME://$HOST/$src" ;;
+    esac
+    case "$burl" in
+        http*|"$SCHEME"://*) scope_allows "$burl" "$SCOPE" || continue ;;
     esac
     info "bundle $n: $src"
     "${CURL[@]}" --max-filesize 6000000 -o "$RUN/evidence/bundle-$n.js" "$burl" 2>/dev/null || true

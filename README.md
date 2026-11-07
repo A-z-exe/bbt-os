@@ -327,6 +327,15 @@ bbt-surface --target https://app.example.com --scope ~/scope.txt --timeout 20 --
 | JavaScript | `sourceMappingURL` references, external API hosts, secret patterns (AWS, Google, GitHub, Slack, JWT, private keys); referenced source maps probed for `200` |
 | Report | `summary.md` with a prefilled title/severity/steps/evidence/impact/remediation skeleton |
 
+Scope entries may be hosts (`app.example.com`, `*.example.com`) or full URLs.
+A URL with a path authorizes only that prefix: `https://api.example.com/srv/app`
+does not unlock the rest of the host, and redirects to any other prefix are
+recorded as `redirect-left-scope` instead of followed.
+
+```bash
+bbt-surface --scope ~/scope.txt --check-scope https://api.example.com/srv/app/items
+```
+
 Signals are written to `findings.txt` and clearly marked as *to verify*; the
 tool never claims a vulnerability on its own. Output goes to
 `~/bbt/runs/surface-<host>-<time>/` and `~/bbt/runs/latest-surface`.
