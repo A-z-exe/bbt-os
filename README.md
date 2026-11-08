@@ -244,14 +244,24 @@ with `summary.md`, `run.log`, captures and `history.tsv`.
 channel and requires the permission checkbox. `--dry-run` prints the plan
 without touching the adapter.
 
-**Virtual machines have no wireless radio.** In VMware attach a USB adapter
-first (**VM > Removable Devices > your adapter > Connect**), then:
+**Virtual machines have no wireless radio.** A built-in PCIe card (for example
+an Intel AX201) cannot be passed through to VMware Workstation, so a USB Wi-Fi
+adapter with monitor mode and frame injection is required. Supported chipsets:
+Atheros AR9271 (`ath9k_htc`), MediaTek MT7612U (`mt76x2u`), Realtek RTL8812AU
+or RTL8814AU (`rtl8812au-dkms`). Attach it to the guest first (**VM > Removable
+Devices > your adapter > Connect**); if the option is greyed out, power off the
+VM, add a USB 3.x (xHCI) controller in VM Settings > USB, then boot again.
 
 ```bash
-lsusb | grep -iE 'wireless|802.11|atheros|realtek|ralink'
+lsusb | grep -iE 'wireless|802.11|atheros|realtek|ralink|mediatek'
+printf 'nfc\ncfg80211\nmac80211\n' | sudo tee /etc/modules-load.d/bbt-os.conf
+sudo modprobe cfg80211 mac80211
 sudo rfkill unblock wifi
 bbt-wifi status
 ```
+
+`bbt-wifi status` names the guest, the module state and the missing driver or
+firmware when no adapter shows up.
 
 Only test networks you own or have written permission to test. Deauth against
 networks you do not control is illegal in most jurisdictions.

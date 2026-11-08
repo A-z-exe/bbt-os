@@ -110,15 +110,58 @@ cmd_status() {
 
     if [ "$found" = 0 ]; then
         warn "no wireless adapter visible"
-        cat <<EOF
+        local hyper="" mods="" missing_mod=""
+        local fw=""
+        for d in ath9k_htc rtlwifi rtw88 rtw89 mt76 mediatek; do
+            [ -e "/lib/firmware/$d" ] && fw="$fw $d"
+        done
+        compgen -G "/lib/firmware/iwlwifi-*" >/dev/null && fw="$fw iwlwifi"
+        fw="${fw:-none found}"
+        if systemd-detect-virt --quiet --vm 2>/dev/null; then
+            hyper="virtual machine ($(systemd-detect-virt 2>/dev/null))"
+        fi
+        for m in cfg80211 mac80211; do
+            if lsmod 2>/dev/null | grep -q "^$m "; then mods="$mods $m:loaded"
+            elif modinfo "$m" >/dev/null 2>&1; then mods="$mods $m:available"
+            else missing_mod="$missing_mod $m"; fi
+        done
+        printf '\n  host      %s\n' "${hyper:-bare metal}"
+        printf '  modules  %s%s\n' "${mods# }" "${missing_mod:+  MISSING:$missing_mod}"
+        printf '  firmware  %s\n\n' "$fw"
+        if [ -n "$hyper" ]; then
+            cat <<EOF
+  A guest cannot create a wireless radio: the host card is not usable inside a
+  VM. You need a USB Wi-Fi adapter (monitor mode + frame injection) and it must
+  be attached to this guest.
+    1. Plug in a supported USB adapter. Recommended chipsets:
+         Atheros AR9271      (ath9k_htc, 2.4GHz, cheapest)
+         MediaTek MT7612U    (mt76x2u, 2.4/5GHz, driver in-kernel)
+         Realtek RTL8812AU   (rtl8812au-dkms, 2.4/5GHz)
+         Realtek RTL8814AU   (4x4, needs DKMS)
+       Do NOT use RTL8188EUS/RTL8192CU class dongles for injection.
+    2. VMware Workstation: VM > Removable Devices > <adapter> > Connect
+       (Disconnect from Host). VirtualBox: Devices > USB > <adapter>.
+    3. If "Connect" is greyed out, power the VM off and add a USB 3.x
+       (xHCI) controller in VM Settings > USB, then reboot the guest.
+    4. In the guest, enable the stack:
+         printf 'nfc\ncfg80211\nmac80211\n' | sudo tee /etc/modules-load.d/bbt-os.conf
+         sudo modprobe cfg80211 mac80211 && sudo rfkill unblock wifi
+    5. Verify:
+         lsusb | grep -iE 'wireless|802.11|atheros|realtek|ralink|mediatek'
+         iw dev ; ip -br link ; bbt-wifi status
 
-  VMware guest? Attach the USB adapter first:
-    VM > Removable Devices > <your adapter> > Connect (Disconnect from Host)
-  Then check:  lsusb | grep -iE 'wireless|802.11|atheros|realtek|ralink'
-               sudo rfkill unblock wifi && bbt-wifi status
-
-  Virtual machines cannot create a wireless radio; USB passthrough is required.
+  The built-in PCIe card (e.g. Intel AX201) cannot be passed through to VMware
+  Workstation, so an internal radio will never appear here.
 EOF
+        else
+            cat <<EOF
+
+  Check that the adapter is plugged in, then:
+    lsusb | grep -iE 'wireless|802.11|atheros|realtek|ralink|mediatek'
+    dmesg | tail -20          # driver/firmware errors
+    sudo rfkill unblock wifi && bbt-wifi status
+EOF
+        fi
         return 1
     fi
 
