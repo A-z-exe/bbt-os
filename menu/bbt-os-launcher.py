@@ -30,6 +30,9 @@ from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOME = Path.home()
+LOCAL_BIN = HOME / ".local" / "bin"
+if str(LOCAL_BIN) not in os.environ.get("PATH", "").split(os.pathsep):
+    os.environ["PATH"] = str(LOCAL_BIN) + os.pathsep + os.environ.get("PATH", "")
 SCOPE_FILE = HOME / "scope.txt"
 RECON_DIR = HOME / "bbt" / "recon"
 WIFI_DIR = HOME / "bbt" / "wifi"
