@@ -525,6 +525,14 @@ def build_actions() -> list[dict]:
     add("System", "Apply scan tuning", "Raise limits for high-concurrency scans",
         "sudo bbt-ktune --apply", "bbt-ktune", icon="gear",
         keywords="apply kernel tuning sudo sysctl concurrency")
+    add("System", "Access link (anywhere)", "Password-protected web terminal with a public link",
+        "bbt-access start --public", "bbt-access", icon="net",
+        keywords="access link remote web terminal cloudflare phone shell")
+    add("System", "Access link status", "Show the running link and expiry",
+        "bbt-access status; echo; bbt-access link", "bbt-access", icon="pulse",
+        keywords="access status link url expiry")
+    add("System", "Stop access link", "Close the web terminal and tunnel",
+        "bbt-access stop", "bbt-access", icon="gear", keywords="access stop close")
 
     # ----------------------------------------------------------- Reporting
     add("Reporting", "BBT help", "Show every BBT mode and option",
@@ -1737,6 +1745,7 @@ def main() -> int:
               f"bbt-surface={'ok' if which('bbt-surface') else 'missing'} "
               f"bounty={'ok' if which('bbt-bounty') else 'missing'} "
               f"ktune={'ok' if which('bbt-ktune') else 'missing'} "
+              f"access={'ok' if which('bbt-access') else 'missing'} "
               f"doctor={'ok' if which('bbt-os-doctor') else 'missing'}")
         print(f"icons: {', '.join(str(path) for path in icon_dirs()) or 'none'}")
         print(f"tools: {present}/{len(tools)}")

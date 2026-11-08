@@ -37,6 +37,7 @@ Kali tooling, repositories and updates keep working normally.
 | **Toolkit** | [BBT Toolkit](https://github.com/A-z-exe/BugBountyToolkit) with scope-gated `-m auto` orchestration |
 | **Desktop** | searchable neon GTK launcher with a designed 43-icon set, live status footer, BBT wallpaper, menu entry, double-click installers |
 | **Health** | `bbt-os-doctor` audits kernel, services, adapters, toolchain, data and integrations, with `--fix` |
+| **Access** | `bbt-access`: authenticated web terminal with a public https link (Serveo, localhost.run, Cloudflare), LAN mode and auto-expiry |
 
 Additional desktop work:
 
@@ -265,6 +266,33 @@ firmware when no adapter shows up.
 
 Only test networks you own or have written permission to test. Deauth against
 networks you do not control is illegal in most jurisdictions.
+
+## Access link from anywhere
+
+`bbt-access` starts an authenticated web terminal (ttyd) on `127.0.0.1` and
+opens a public https tunnel, so the same link works on a phone, tablet or
+another computer. The password is generated once and stored in
+`~/.config/bbt/access.env` (mode 600).
+
+```bash
+bbt-access start --public              # auto: serveo -> localhost.run -> cloudflare
+bbt-access start --public --expire 30  # stop automatically after 30 minutes
+bbt-access start --lan                 # local network only, no tunnel
+bbt-access status                      # link, provider and remaining time
+bbt-access link                        # print link and credentials again
+bbt-access stop
+```
+
+- The tunnel provider terminates TLS and sees the traffic, so do not type
+  third-party secrets into the session.
+- Public sessions stop after 120 minutes by default (`--expire 0` disables).
+- Serveo shows a one-time "Continue to Site" page; localhost.run has no
+  interstitial but is slower. Cloudflare quick tunnels are blocked on some
+  networks and are tried last.
+- On Android or iOS open the link, sign in, then use the browser menu and
+  "Add to Home Screen" to keep it as an app icon.
+- `bbt-access` works without root; the ttyd and cloudflared binaries are
+  fetched into `~/.local/bin` on first use.
 
 ## Android devices and recovery
 
@@ -535,7 +563,7 @@ branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
 modules/                web, wifi, workflows, kernel, android, windows, smartcard, mobsf, bbt, audit, desktop, lockscreen, branding, boot
 packages/               apt package manifests per tool group
-scripts/                bbt-wifi, bbt-workflow, bbt-surface, bbt-bounty, bbt-ktune, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
+scripts/                bbt-wifi, bbt-workflow, bbt-surface, bbt-bounty, bbt-access, bbt-ktune, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
 share/                  AppImage and .run MIME definitions
 ```
 

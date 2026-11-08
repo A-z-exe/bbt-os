@@ -234,7 +234,7 @@ done
 [ -x /usr/local/bin/bbt-os-launcher ] \
     && printf '  OK      %s\n' "/usr/local/bin/bbt-os-launcher" \
     || printf '  MISSING %s\n' "/usr/local/bin/bbt-os-launcher"
-for t in bbt-wifi bbt-workflow bbt-surface bbt-bounty bbt-ktune bbt-os-doctor; do
+for t in bbt-wifi bbt-workflow bbt-surface bbt-bounty bbt-ktune bbt-access bbt-os-doctor; do
     if [ -x "/usr/local/bin/$t" ]; then
         printf '  OK      %s\n' "/usr/local/bin/$t"
     else
