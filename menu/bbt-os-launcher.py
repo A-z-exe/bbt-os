@@ -115,6 +115,7 @@ CATEGORY_ICONS = {
     "Android": "android",
     "Windows / AD": "windows",
     "Smart Card": "card",
+    "Access": "net",
     "System": "cpu",
     "Reporting": "doc",
     "Updates": "refresh",
@@ -134,6 +135,14 @@ def which(tool: str) -> str | None:
     return None
 
 
+def sudo_command(tool: str, arguments: str = "") -> str:
+    # sudo uses secure_path, which does not include ~/.local/bin where the
+    # overlay scripts live on user-level installs, so hand it the full path.
+    path = which(tool) or tool
+    command = f"sudo {shlex.quote(path)}"
+    return f"{command} {arguments}".rstrip()
+
+
 def icon_dirs() -> list[Path]:
     directories: list[Path] = []
     env = os.environ.get("BBT_OS_ICONS")
@@ -145,6 +154,42 @@ def icon_dirs() -> list[Path]:
         HOME / ".local" / "share" / "bbt-os" / "icons",
     ]
     return [directory for directory in directories if directory.is_dir()]
+
+
+def payload_dirs() -> list[Path]:
+    directories: list[Path] = []
+    env = os.environ.get("BBT_OS_PAYLOADS")
+    if env:
+        directories.append(Path(env))
+    directories += [
+        REPO_ROOT / "payloads",
+        Path("/usr/share/bbt-os/payloads"),
+        HOME / ".local" / "share" / "bbt-os" / "payloads",
+    ]
+    return [directory for directory in directories if directory.is_dir()]
+
+
+def payload(name: str) -> Path | None:
+    for directory in payload_dirs():
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def win_helper_command() -> str:
+    helpers = [path for path in (payload("windows/SmartCardRdp.exe"),
+                                 payload("windows/SmartCardRelay.exe")) if path]
+    if not helpers:
+        return "echo 'Windows smart card payloads are missing; run Refresh.'"
+    target_dir = HOME / "bbt" / "payloads"
+    steps = [f"mkdir -p {shlex.quote(str(target_dir))}"]
+    for helper in helpers:
+        steps.append(f"install -Dm644 {shlex.quote(str(helper))} "
+                     f"{shlex.quote(str(target_dir / helper.name))}")
+    steps.append(f"printf 'Saved to %s\\n' {shlex.quote(str(target_dir))}")
+    steps.append(f"xdg-open {shlex.quote(str(target_dir))}")
+    return " && ".join(steps)
 
 
 def icon_pixbuf(name: str, size: int = 24) -> GdkPixbuf.Pixbuf | None:
@@ -505,6 +550,31 @@ def build_actions() -> list[dict]:
         "bbt-smartcard apdu", "opensc-tool", icon="code",
         keywords="apdu iso7816 smartcard command")
 
+    # -------------------------------------------------------------- Access
+    add("Access", "Access link (anywhere)",
+        "Password-protected web terminal with a public link",
+        "bbt-access start --public", "bbt-access", icon="net",
+        keywords="access link remote web terminal serveo tunnel phone shell")
+    add("Access", "Access link status", "Show the running link and expiry",
+        "bbt-access status; echo; bbt-access link", "bbt-access", icon="pulse",
+        keywords="access status link url expiry")
+    add("Access", "Stop access link", "Close the web terminal and tunnel",
+        "bbt-access stop", "bbt-access", icon="gear", keywords="access stop close")
+    add("Access", "Remote card via Windows relay",
+        "Use a Windows PC's card reader here over VPCD (port 35963)",
+        "bbt-smartcard-remote setup", "bbt-smartcard-remote", icon="chip",
+        keywords="remote smart card relay vpcd windows virtual reader pcsc apdu")
+    add("Access", "Remote card status", "Readers, ATR and pcscd state",
+        "bbt-smartcard-remote status", "bbt-smartcard-remote", icon="pulse",
+        keywords="remote smart card status atr reader")
+    add("Access", "Stop remote card", "Restore the local virtual reader",
+        "bbt-smartcard-remote remove", "bbt-smartcard-remote", icon="gear",
+        keywords="remote smart card remove reset vpcd")
+    add("Access", "Windows smart card payloads",
+        "Save SmartCardRdp.exe and SmartCardRelay.exe to ~/bbt/payloads",
+        win_helper_command(), icon="usb",
+        keywords="windows exe smart card rdp certutil relay vpcd payload usb")
+
     # -------------------------------------------------------------- System
     add("System", "Kernel report", "Running kernel, headers and module status",
         "uname -a; echo; ls -1 /lib/modules; echo; "
@@ -526,17 +596,8 @@ def build_actions() -> list[dict]:
         "bbt-ktune 2>&1 | head -n 30", "bbt-ktune", icon="cpu",
         keywords="kernel sysctl tuning network limits scanning")
     add("System", "Apply scan tuning", "Raise limits for high-concurrency scans",
-        "sudo bbt-ktune --apply", "bbt-ktune", icon="gear",
+        sudo_command("bbt-ktune", "--apply"), "bbt-ktune", icon="gear",
         keywords="apply kernel tuning sudo sysctl concurrency")
-    add("System", "Access link (anywhere)", "Password-protected web terminal with a public link",
-        "bbt-access start --public", "bbt-access", icon="net",
-        keywords="access link remote web terminal cloudflare phone shell")
-    add("System", "Access link status", "Show the running link and expiry",
-        "bbt-access status; echo; bbt-access link", "bbt-access", icon="pulse",
-        keywords="access status link url expiry")
-    add("System", "Stop access link", "Close the web terminal and tunnel",
-        "bbt-access stop", "bbt-access", icon="gear", keywords="access stop close")
-
     # ----------------------------------------------------------- Reporting
     add("Reporting", "BBT help", "Show every BBT mode and option",
         f"{bbt_cmd} --help 2>&1 | head -n 80", icon="terminal",
@@ -901,7 +962,7 @@ class BBTWindow(Gtk.Window):
                 self,
             )
             return
-        launch_terminal("BBT OS doctor", "sudo bbt-os-doctor", self)
+        launch_terminal("BBT OS doctor", sudo_command("bbt-os-doctor"), self)
 
     def update_bbt(self) -> None:
         repo, _argv = bbt_invocation()

@@ -11,3 +11,4 @@ libnfc-examples
 libfreefare-bin
 mfoc
 mfcuk
+vsmartcard-vpcd

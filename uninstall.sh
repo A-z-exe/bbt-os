@@ -21,7 +21,8 @@ echo "[*] Removing BBT OS wrappers and desktop entries"
 rm -f /usr/local/bin/bbt-os-launcher /usr/local/bin/bbt-os \
       /usr/local/bin/bbt-os-refresh /usr/local/bin/bbt-os-wallpaper \
       /usr/local/bin/bbt-os-install-file /usr/local/bin/bbt-os-cursor \
-      /usr/local/bin/bbt-smartcard /usr/local/bin/mobsf \
+      /usr/local/bin/bbt-smartcard /usr/local/bin/bbt-smartcard-remote \
+      /usr/local/bin/mobsf \
       /usr/local/bin/bbt-wifi /usr/local/bin/bbt-workflow \
       /usr/local/bin/bbt-surface /usr/local/bin/bbt-bounty \
       /usr/local/bin/bbt-ktune /usr/local/bin/bbt-access \
@@ -30,6 +31,7 @@ rm -f /usr/share/applications/bbt-os.desktop \
       /usr/share/applications/bbt-os-installer.desktop
 rm -f /etc/xdg/autostart/bbt-os-*.desktop
 rm -f /etc/profile.d/bbt-os.sh /etc/profile.d/bbt-os-cursor.sh
+rm -f /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
 rm -f /etc/X11/xorg.conf.d/20-bbt-os-swcursor.conf
 rm -f /etc/systemd/logind.conf.d/99-bbt-os-no-sleep.conf
 rm -f /usr/share/mime/packages/bbt-os-installer.xml

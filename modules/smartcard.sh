@@ -11,5 +11,11 @@ install_smartcard() {
         || systemctl enable --now pcscd >/dev/null 2>&1 \
         || warn "pcscd could not be enabled; card readers need it at boot"
     install -m 755 "$HERE/scripts/bbt-smartcard.sh" /usr/local/bin/bbt-smartcard
+    install -m 755 "$HERE/scripts/bbt-smartcard-remote.sh" /usr/local/bin/bbt-smartcard-remote
+    if [ -f "$HERE/share/polkit-1/rules.d/50-bbt-os-pcsc.rules" ]; then
+        install -Dm644 "$HERE/share/polkit-1/rules.d/50-bbt-os-pcsc.rules" \
+            /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
+    fi
     ok "bbt-smartcard ready: readers, chip info, NFC/MIFARE read and write"
+    ok "bbt-smartcard-remote ready: remote Windows reader over VPCD"
 }

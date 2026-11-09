@@ -37,7 +37,7 @@ Kali tooling, repositories and updates keep working normally.
 | **Toolkit** | [BBT Toolkit](https://github.com/A-z-exe/BugBountyToolkit) with scope-gated `-m auto` orchestration |
 | **Desktop** | searchable neon GTK launcher with a designed 43-icon set, live status footer, BBT wallpaper, menu entry, double-click installers |
 | **Health** | `bbt-os-doctor` audits kernel, services, adapters, toolchain, data and integrations, with `--fix` |
-| **Access** | `bbt-access`: authenticated web terminal with a public https link (Serveo, localhost.run, Cloudflare), LAN mode and auto-expiry |
+| **Access** | `bbt-access`: authenticated web terminal with a public https link (Serveo, localhost.run, Cloudflare), LAN mode, auto-expiry, plus `SmartCardRdp.exe` and `SmartCardRelay.exe` helpers for Windows 7/10/11 |
 
 Additional desktop work:
 
@@ -134,6 +134,9 @@ Modules:
 - **Windows / AD** - AD workflow, NetExec, Impacket, Evil-WinRM, Responder,
   Enum4linux-ng, BloodHound.py.
 - **Smart Card** - readers, ATR/PKCS#15, NFC, NDEF, MIFARE and APDU actions.
+- **Access** - public/LAN access link (start, status, stop) and the Windows
+  smart card helpers: `SmartCardRelay.exe` exposes a remote reader over VPCD
+  and `SmartCardRdp.exe` enables RDP and dumps card info.
 - **System** - kernel report, hardware inventory, interfaces, services and the
   health doctor.
 - **Reporting** - BBT help, edit `~/scope.txt`, open results, workflow runs,
@@ -293,6 +296,61 @@ bbt-access stop
   "Add to Home Screen" to keep it as an app icon.
 - `bbt-access` works without root; the ttyd and cloudflared binaries are
   fetched into `~/.local/bin` on first use.
+
+### Remote card reader over VPCD
+
+When the card reader sits in a Windows machine on the LAN, `SmartCardRelay.exe`
+turns it into a network reader. It runs on Windows, opens the real reader
+through winscard and speaks the Virtual Smart Card Protocol (VPCD) on TCP
+35963 and 35964 (the driver has two Lun slots and dials `CHANNELID + Lun`);
+Kali's `libifdvpcd` dials them, so the card shows up as a local PC/SC reader:
+
+```
+Windows: SmartCardRelay.exe   (listens 35963-35964, firewall limited to 192.168.1.158)
+Kali:    bbt-smartcard-remote setup 192.168.1.176
+```
+
+`setup` installs `vsmartcard-vpcd` and writes `/etc/reader.conf.d/vpcd`:
+
+```
+FRIENDLYNAME "BBT Remote Card"
+DEVICENAME   192.168.1.176:0x8C7B
+LIBPATH      /usr/lib/pcsc/drivers/serial/libifdvpcd.so
+CHANNELID    0x8C7B
+```
+
+A `host:port` DEVICENAME makes the driver connect out; `/dev/null:port` makes
+it listen for a vpicc client, so the default file is restored from the
+launcher's **Stop remote card** action. After setup, `pcsc_scan -r`,
+`opensc-tool -a`, `pkcs11-tool` and `bbt-smartcard` all operate on the real
+remote card (ATR, APDU, PIN prompts). Start the relay first, keep it running
+while the card is in use, and close it when finished.
+
+The driver has two Lun slots and dials `CHANNELID + Lun`, so the relay listens
+on 35963 **and** 35964; serving only the first port makes pcscd block on the
+second connection and abort. The overlay also installs
+`/etc/polkit-1/rules.d/50-bbt-os-pcsc.rules`: pcscd rejects local desktop
+clients on this image even though the action defaults to `allow_active=yes`.
+The rule allows local sessions only, so SSH logins stay denied.
+
+### Windows smart card helper
+
+The **Access** group also exports `SmartCardRdp.exe` and `SmartCardRelay.exe`
+(sources in `payloads/windows/`) to `~/bbt/payloads` so they can be copied to a
+Windows machine with the card reader. `SmartCardRdp.exe` enables RDP and dumps
+card info; double-click it (UAC prompt) to:
+
+1. enable RDP on TCP 3389 with a firewall rule named `BBT-RDP` and start
+   `TermService`;
+2. run `certutil -scinfo` and save the readers, ATR and certificates to
+   `smartcard-info.txt` on the desktop;
+3. print the machine IPv4 address.
+
+Reading certificates does not ask for a PIN. Use `SmartCardRdp.exe off` when
+you are done to close port 3389 again; the service is left running so active
+sessions are not dropped. The exe targets .NET 2.0/3.5, which Windows 7 ships
+by default. RDP needs an account with a password, and Windows 7 is end of life,
+so keep the port open only for the session you need.
 
 ## Android devices and recovery
 
@@ -563,6 +621,7 @@ branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
 modules/                web, wifi, workflows, kernel, android, windows, smartcard, mobsf, bbt, audit, desktop, lockscreen, branding, boot
 packages/               apt package manifests per tool group
+payloads/windows/       SmartCardRdp/SmartCardRelay.exe helpers, sources and manifests
 scripts/                bbt-wifi, bbt-workflow, bbt-surface, bbt-bounty, bbt-access, bbt-ktune, bbt-android-recovery, bbt-os-doctor, wallpaper, cursor, account, smart card, installer, MobSF helper
 share/                  AppImage and .run MIME definitions
 ```
