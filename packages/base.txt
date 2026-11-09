@@ -17,7 +17,7 @@ pipx
 zenity
 xinput
 x11-xserver-utils
-dnsutils
+bind9-dnsutils
 whois
 netcat-traditional
 openssh-server

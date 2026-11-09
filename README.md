@@ -631,3 +631,7 @@ share/                  AppImage and .run MIME definitions
 MIT - see [LICENSE](LICENSE). Kali Linux and its tooling keep their own
 licenses; BBT OS is an independent community overlay and is not endorsed by
 OffSec.
+
+## Author
+
+[AmirHossein Zarei](https://a-z-exe.github.io/) — [GitHub](https://github.com/A-z-exe)
