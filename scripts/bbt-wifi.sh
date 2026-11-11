@@ -34,6 +34,7 @@ CACHE="$BBT_DIR/last-scan.tsv"
 DEFAULT_WORDLIST="/usr/share/wordlists/rockyou.txt"
 [ -f "$DEFAULT_WORDLIST" ] || DEFAULT_WORDLIST="$BBT_DIR/rockyou.txt"
 HASHCAT_RULES="/usr/share/hashcat/rules/best64.rule"
+[ -f "$HASHCAT_RULES" ] || HASHCAT_RULES="/usr/share/hashcat/rules/best66.rule"
 
 RED=$'\033[31m'; GREEN=$'\033[32m'; AMBER=$'\033[33m'; CYAN=$'\033[36m'; DIM=$'\033[2m'; OFF=$'\033[0m'
 [ -t 1 ] || { RED=""; GREEN=""; AMBER=""; CYAN=""; DIM=""; OFF=""; }
