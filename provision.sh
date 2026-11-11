@@ -182,6 +182,10 @@ if [ "$DO_DESKTOP" = 1 ]; then
     source "$HERE/modules/desktop.sh"
     install_desktop
 fi
+# Needs the root-owned /opt/bbt-os copy that install_desktop refreshes.
+# shellcheck source=modules/root.sh
+source "$HERE/modules/root.sh"
+install_root_helper
 if [ "$DO_AUDIT" = 1 ]; then
     # shellcheck source=modules/audit.sh
     source "$HERE/modules/audit.sh"

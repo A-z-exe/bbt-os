@@ -20,13 +20,19 @@ set -uo pipefail
 
 VERSION="$(cat /usr/share/bbt-os/VERSION 2>/dev/null || echo unknown)"
 
+OWNER="${SUDO_USER:-}"
+if [ -z "$OWNER" ] && [ -n "${PKEXEC_UID:-}" ] && [ "$PKEXEC_UID" != 0 ]; then
+    OWNER="$(getent passwd "$PKEXEC_UID" | cut -d: -f1)"
+fi
+[ "$OWNER" = root ] && OWNER=""
 USER_HOME="${HOME:-/root}"
-if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
-    USER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+if [ -n "$OWNER" ]; then
+    USER_HOME="$(getent passwd "$OWNER" | cut -d: -f6)"
 fi
 BBT_DIR="${BBT_WIFI_DIR:-$USER_HOME/bbt/wifi}"
 CACHE="$BBT_DIR/last-scan.tsv"
 DEFAULT_WORDLIST="/usr/share/wordlists/rockyou.txt"
+[ -f "$DEFAULT_WORDLIST" ] || DEFAULT_WORDLIST="$BBT_DIR/rockyou.txt"
 HASHCAT_RULES="/usr/share/hashcat/rules/best64.rule"
 
 RED=$'\033[31m'; GREEN=$'\033[32m'; AMBER=$'\033[33m'; CYAN=$'\033[36m'; DIM=$'\033[2m'; OFF=$'\033[0m'
@@ -698,8 +704,8 @@ cmd_attack() {
         ls -1 "$RUN" | sed 's/^/- /'
     } >"$RUN/summary.md"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "$ssid" "$bssid" "$method" "${psk:-none}" "$RUN" >>"$BBT_DIR/history.tsv"
-    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
-        chown -R "$SUDO_USER":"$(id -gn "$SUDO_USER" 2>/dev/null || echo "$SUDO_USER")" "$RUN" 2>/dev/null || true
+    if [ -n "$OWNER" ]; then
+        chown -R "$OWNER":"$(id -gn "$OWNER" 2>/dev/null || echo "$OWNER")" "$RUN" 2>/dev/null || true
     fi
 
     if [ -n "$psk" ]; then

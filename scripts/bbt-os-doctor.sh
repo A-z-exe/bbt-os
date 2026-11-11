@@ -291,6 +291,11 @@ for helper in bbt-wifi bbt-workflow bbt-surface bbt-bounty bbt-ktune bbt-access 
         warn "$helper" "not installed"
     fi
 done
+if [ -x /usr/libexec/bbt-os/bbt-run ]; then
+    pass "bbt-run" "root bridge installed"
+else
+    warn "bbt-run" "root bridge missing; privileged tools will ask for a password"
+fi
 [ -d /usr/share/bbt-os/icons ] && pass "BBT icon theme" "$(ls /usr/share/bbt-os/icons/*.svg 2>/dev/null | wc -l) icons" \
     || warn "BBT icon theme" "not installed"
 

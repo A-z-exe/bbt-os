@@ -8,6 +8,10 @@ install_desktop() {
     if [ "$HERE" != "/opt/bbt-os" ]; then
         cp -a "$HERE/." /opt/bbt-os/
         rm -rf /opt/bbt-os/.git /opt/bbt-os/menu/__pycache__
+        # bbt-run executes scripts from here as root, so this tree must never
+        # keep foreign ownership or group/world write bits from a share.
+        chown -R root:root /opt/bbt-os
+        chmod -R go-w /opt/bbt-os
     fi
     install -d /usr/share/bbt-os /usr/share/bbt-os/icons /usr/share/icons/hicolor/scalable/apps
     install -m 644 "$HERE/assets/bbt-os.svg" /usr/share/bbt-os/bbt-os.svg

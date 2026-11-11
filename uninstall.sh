@@ -31,7 +31,9 @@ rm -f /usr/share/applications/bbt-os.desktop \
       /usr/share/applications/bbt-os-installer.desktop
 rm -f /etc/xdg/autostart/bbt-os-*.desktop
 rm -f /etc/profile.d/bbt-os.sh /etc/profile.d/bbt-os-cursor.sh
-rm -f /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
+rm -f /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules \
+      /etc/polkit-1/rules.d/50-bbt-os-tools.rules
+rm -rf /usr/libexec/bbt-os
 rm -f /etc/X11/xorg.conf.d/20-bbt-os-swcursor.conf
 rm -f /etc/systemd/logind.conf.d/99-bbt-os-no-sleep.conf
 rm -f /usr/share/mime/packages/bbt-os-installer.xml

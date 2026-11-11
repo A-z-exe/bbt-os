@@ -294,7 +294,10 @@ workflow_ad() {
     auth_gate
     [ "$DRY" = 1 ] && RUN="$RUNS/ad-$dc-DRYRUN" || start_run ad "$dc"
 
-    run "nmap domain controller ports" nmap -Pn -sS --open \
+    # -sS needs root; keep the chain working for unprivileged launches too
+    local scan_type=-sT
+    [ "$(id -u)" -eq 0 ] && scan_type=-sS
+    run "nmap domain controller ports" nmap -Pn "$scan_type" --open \
         -p 53,88,135,139,389,445,464,593,636,3268,3269,5985,5986 \
         -oN "$RUN/nmap.txt" "$dc"
     if have enum4linux-ng; then

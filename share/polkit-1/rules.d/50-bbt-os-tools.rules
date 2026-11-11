@@ -1,0 +1,21 @@
+// BBT OS: run privileged BBT tools from the desktop without a password prompt.
+//
+// bbt-run is a root-owned, allowlisted bridge (see /usr/libexec/bbt-os/bbt-run).
+// It is the only program this rule covers, and only for the local, active
+// session of the BBT OS user. SSH sessions (subject.local false) and other
+// programs still go through the normal authentication flow.
+polkit.addRule(function(action, subject) {
+    if (action.id !== "org.freedesktop.policykit.exec") {
+        return;
+    }
+    if (!subject.local || !subject.active) {
+        return;
+    }
+    if (subject.user !== "@BBT_USER@") {
+        return;
+    }
+    if (action.lookup("program") !== "/usr/libexec/bbt-os/bbt-run") {
+        return;
+    }
+    return polkit.Result.YES;
+});

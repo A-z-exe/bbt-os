@@ -39,6 +39,7 @@ WIFI_DIR = HOME / "bbt" / "wifi"
 RUNS_DIR = HOME / "bbt" / "runs"
 GITHUB = "https://github.com/A-z-exe/bbt-os"
 EMAIL = "207771865+A-z-exe@users.noreply.github.com"
+ROOT_HELPER = Path("/usr/libexec/bbt-os/bbt-run")
 
 
 def read_version() -> str:
@@ -141,6 +142,19 @@ def sudo_command(tool: str, arguments: str = "") -> str:
     path = which(tool) or tool
     command = f"sudo {shlex.quote(path)}"
     return f"{command} {arguments}".rstrip()
+
+
+def root_command(tool: str, arguments: str = "") -> str:
+    """Run a privileged BBT tool as root without a per-launch sudo prompt.
+
+    bbt-run is root-owned and allowlisted; the matching polkit rule covers
+    this local desktop session, so no terminal password prompt is shown.
+    """
+    if ROOT_HELPER.is_file():
+        pkexec = which("pkexec") or "/usr/bin/pkexec"
+        command = f"{shlex.quote(pkexec)} {shlex.quote(str(ROOT_HELPER))} {tool}"
+        return f"{command} {arguments}".rstrip()
+    return sudo_command(tool, arguments)
 
 
 def icon_dirs() -> list[Path]:
@@ -518,7 +532,7 @@ def build_actions() -> list[dict]:
     add("Windows / AD", "Evil-WinRM", "WinRM shell help (authorized hosts only)",
         "evil-winrm -h 2>&1 | head -n 50", "evil-winrm", icon="terminal")
     add("Windows / AD", "Responder", "LLMNR/NBT-NS/MDNS poisoning help (lab/authorized only)",
-        "sudo responder -h 2>&1 | head -n 50", "responder", icon="radio")
+        "responder -h 2>&1 | head -n 50", "responder", icon="radio")
     add("Windows / AD", "Enum4linux-ng", "SMB/NetBIOS enumeration",
         "enum4linux-ng -h 2>&1 | head -n 50", "enum4linux-ng", icon="net")
     add("Windows / AD", "BloodHound.py", "AD collection help",
@@ -562,13 +576,13 @@ def build_actions() -> list[dict]:
         "bbt-access stop", "bbt-access", icon="gear", keywords="access stop close")
     add("Access", "Remote card via Windows relay",
         "Use a Windows PC's card reader here over VPCD (port 35963)",
-        "bbt-smartcard-remote setup", "bbt-smartcard-remote", icon="chip",
+        root_command("bbt-smartcard-remote", "setup"), "bbt-smartcard-remote", icon="chip",
         keywords="remote smart card relay vpcd windows virtual reader pcsc apdu")
     add("Access", "Remote card status", "Readers, ATR and pcscd state",
-        "bbt-smartcard-remote status", "bbt-smartcard-remote", icon="pulse",
+        root_command("bbt-smartcard-remote", "status"), "bbt-smartcard-remote", icon="pulse",
         keywords="remote smart card status atr reader")
     add("Access", "Stop remote card", "Restore the local virtual reader",
-        "bbt-smartcard-remote remove", "bbt-smartcard-remote", icon="gear",
+        root_command("bbt-smartcard-remote", "remove"), "bbt-smartcard-remote", icon="gear",
         keywords="remote smart card remove reset vpcd")
     add("Access", "Windows smart card payloads",
         "Save SmartCardRdp.exe and SmartCardRelay.exe to ~/bbt/payloads",
@@ -590,13 +604,13 @@ def build_actions() -> list[dict]:
         "systemctl --no-pager --type=service --state=running | head -n 40",
         icon="gear", keywords="services systemd status")
     add("System", "Health doctor", "Full BBT OS audit with a fix option",
-        "bbt-os-doctor", "bbt-os-doctor", icon="pulse",
+        root_command("bbt-os-doctor"), "bbt-os-doctor", icon="pulse",
         keywords="doctor health audit diagnose fix")
     add("System", "Scan tuning report", "Current vs recommended network limits",
         "bbt-ktune 2>&1 | head -n 30", "bbt-ktune", icon="cpu",
         keywords="kernel sysctl tuning network limits scanning")
     add("System", "Apply scan tuning", "Raise limits for high-concurrency scans",
-        sudo_command("bbt-ktune", "--apply"), "bbt-ktune", icon="gear",
+        root_command("bbt-ktune", "--apply"), "bbt-ktune", icon="gear",
         keywords="apply kernel tuning sudo sysctl concurrency")
     # ----------------------------------------------------------- Reporting
     add("Reporting", "BBT help", "Show every BBT mode and option",
@@ -636,13 +650,14 @@ def build_actions() -> list[dict]:
 
     # -------------------------------------------------------------- Updates
     add("Updates", "Refresh BBT OS", "apt update, tool updates and database refresh",
-        "sudo bbt-os-refresh", icon="refresh", keywords="update upgrade refresh")
+        root_command("bbt-os-refresh"), icon="refresh",
+        keywords="update upgrade refresh")
     add("Updates", "Update nuclei templates", "Download the latest nuclei templates",
         "nuclei -update-templates", "nuclei", icon="download")
     add("Updates", "Update BBT toolkit", "git pull and reinstall the Python package",
         "", "git", icon="download", keywords="bbt update git")
-    add("Updates", "System upgrade", "apt update && apt full-upgrade",
-        "sudo apt update && sudo apt full-upgrade -y", icon="refresh")
+    add("Updates", "System upgrade", "apt update, full upgrade and tool refresh",
+        root_command("bbt-os-refresh"), icon="refresh")
 
     return actions
 
@@ -962,7 +977,7 @@ class BBTWindow(Gtk.Window):
                 self,
             )
             return
-        launch_terminal("BBT OS doctor", sudo_command("bbt-os-doctor"), self)
+        launch_terminal("BBT OS doctor", root_command("bbt-os-doctor"), self)
 
     def update_bbt(self) -> None:
         repo, _argv = bbt_invocation()
@@ -1433,7 +1448,7 @@ class BBTWindow(Gtk.Window):
             dialog.destroy()
             if response != Gtk.ResponseType.OK:
                 return
-            launch_terminal(title, f"bbt-wifi {preset}", self)
+            launch_terminal(title, root_command("bbt-wifi", preset), self)
             return
 
         self.dialog_wifi_attack()
@@ -1614,7 +1629,10 @@ class BBTWindow(Gtk.Window):
         reload_btn.connect("clicked", reload_cache)
         browse.connect("clicked", pick_wordlist)
         refresh_btn.connect(
-            "clicked", lambda _b: launch_terminal("Wi-Fi scan", "bbt-wifi scan", dialog)
+            "clicked",
+            lambda _b: launch_terminal(
+                "Wi-Fi scan", root_command("bbt-wifi", "scan"), dialog
+            ),
         )
         if len(model):
             load_ap()
@@ -1691,7 +1709,7 @@ class BBTWindow(Gtk.Window):
             argv.append("--no-crack")
         if values["deauth"]:
             argv.append("--deauth")
-        launch_terminal(f"Wi-Fi: {ssid}", shlex.join(argv), self)
+        launch_terminal(f"Wi-Fi: {ssid}", root_command("bbt-wifi", shlex.join(argv[1:])), self)
 
     def dialog_crack(self) -> None:
         if not which("bbt-wifi"):
@@ -1765,7 +1783,7 @@ class BBTWindow(Gtk.Window):
                 return
             argv = ["bbt-wifi", "crack", "--hash", hash_path,
                     "--wordlist", word_path, "--runtime", str(runtime_s)]
-        launch_terminal("Crack hash", shlex.join(argv), self)
+        launch_terminal("Crack hash", root_command("bbt-wifi", shlex.join(argv[1:])), self)
 
     # -- about
     def on_about(self, _button: Gtk.Button) -> None:
