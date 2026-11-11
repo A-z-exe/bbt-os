@@ -739,6 +739,21 @@ class BBTWindow(Gtk.Window):
         self.listbox.set_activate_on_single_click(True)
         self.listbox.connect("row-selected", self.on_category)
 
+        self.add_sidebar_rows()
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_vexpand(True)
+        scroller.add(self.listbox)
+        box.pack_start(scroller, True, True, 0)
+
+        self.adapter_hint = Gtk.Label(xalign=0)
+        self.adapter_hint.set_line_wrap(True)
+        box.pack_start(self.adapter_hint, False, False, 4)
+        self.refresh_adapter_hint()
+        return box
+
+    def add_sidebar_rows(self) -> None:
         categories: list[str] = []
         for action in self.actions:
             if action["category"] not in categories:
@@ -751,25 +766,32 @@ class BBTWindow(Gtk.Window):
         for category in categories:
             self.add_sidebar_row(category, category, counts[category])
 
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroller.set_vexpand(True)
-        scroller.add(self.listbox)
-        box.pack_start(scroller, True, True, 0)
+    def refresh_sidebar(self) -> None:
+        selected = self.selected_category
+        for row in self.listbox.get_children():
+            self.listbox.remove(row)
+        self.add_sidebar_rows()
+        self.listbox.show_all()
+        if selected:
+            for row in self.listbox.get_children():
+                if getattr(row, "category", "") == selected:
+                    self.listbox.select_row(row)
+                    break
+            else:
+                self.selected_category = ""
+        self.refresh_adapter_hint()
 
+    def refresh_adapter_hint(self) -> None:
         adapters = wireless_adapters()
-        hint = Gtk.Label(
-            label=(
-                "Adapter: " + ", ".join(adapters)
-                if adapters
-                else "No Wi-Fi adapter\n(VM: attach USB first)"
-            ),
-            xalign=0,
+        self.adapter_hint.set_text(
+            "Adapter: " + ", ".join(adapters)
+            if adapters
+            else "No Wi-Fi adapter\n(VM: attach USB first)"
         )
-        hint.set_line_wrap(True)
-        hint.get_style_context().add_class("ok" if adapters else "warn")
-        box.pack_start(hint, False, False, 4)
-        return box
+        ctx = self.adapter_hint.get_style_context()
+        ctx.remove_class("ok")
+        ctx.remove_class("warn")
+        ctx.add_class("ok" if adapters else "warn")
 
     def add_sidebar_row(self, category: str, label_text: str, count: int) -> None:
         row = Gtk.ListBoxRow()
@@ -837,10 +859,22 @@ class BBTWindow(Gtk.Window):
         footer.get_style_context().add_class("footer")
         footer.set_border_width(7)
 
+        self.pill_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        footer.pack_start(self.pill_box, False, False, 0)
+        self.refresh_footer_pills()
+
+        note = Gtk.Label(label="authorized targets only", xalign=1)
+        note.get_style_context().add_class("warn")
+        footer.pack_end(note, False, False, 0)
+        footer.pack_end(Gtk.Label(label=""), True, True, 0)
+        return footer
+
+    def refresh_footer_pills(self) -> None:
+        for child in self.pill_box.get_children():
+            self.pill_box.remove(child)
         tools = {action["tool"] for action in self.actions if action.get("tool")}
         present = sum(1 for tool in tools if which(tool))
         adapters = wireless_adapters()
-
         kernel = platform.release() or "unknown"
         pills = [
             (f"kernel {kernel}", True),
@@ -855,13 +889,8 @@ class BBTWindow(Gtk.Window):
             label = Gtk.Label(label=text)
             label.get_style_context().add_class("pill")
             label.get_style_context().add_class("pill-ok" if ok else "pill-warn")
-            footer.pack_start(label, False, False, 0)
-
-        note = Gtk.Label(label="authorized targets only", xalign=1)
-        note.get_style_context().add_class("warn")
-        footer.pack_end(note, False, False, 0)
-        footer.pack_end(Gtk.Label(label=""), True, True, 0)
-        return footer
+            self.pill_box.pack_start(label, False, False, 0)
+        self.pill_box.show_all()
 
     # -- tiles
     def rebuild_tiles(self) -> None:
@@ -917,7 +946,9 @@ class BBTWindow(Gtk.Window):
 
     def on_reload(self, _button: Gtk.Button) -> None:
         self.actions = build_actions()
+        self.refresh_sidebar()
         self.rebuild_tiles()
+        self.refresh_footer_pills()
 
     # -- dispatch
     def on_action(self, _button: Gtk.Button, action: dict) -> None:

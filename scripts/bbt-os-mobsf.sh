@@ -38,6 +38,9 @@ case "${1:-start}" in
     logs)
         exec "${DOCKER[@]}" logs -f "$NAME"
         ;;
+    -h|--help)
+        echo "usage: mobsf {start|stop|status|logs}"
+        ;;
     *)
         echo "usage: mobsf {start|stop|status|logs}" >&2
         exit 2

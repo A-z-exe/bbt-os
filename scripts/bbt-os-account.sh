@@ -12,6 +12,12 @@ NEW_USER="${BBT_NEW_USER:-bbt}"
 NEW_PASS="${BBT_NEW_PASS:-}"
 OLD_USER="${BBT_OLD_USER:-kali}"
 
+# Re-exec before parsing: the option loop shifts "$@", so a later re-exec
+# would drop --password/--user.
+if [ "$(id -u)" -ne 0 ]; then
+    exec sudo -E bash "$0" "$@"
+fi
+
 while [ $# -gt 0 ]; do
     case "$1" in
         --password) shift; NEW_PASS="${1:-}" ;;
@@ -26,10 +32,6 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
-
-if [ "$(id -u)" -ne 0 ]; then
-    exec sudo -E bash "$0" "$@"
-fi
 
 [ -n "$NEW_PASS" ] || {
     echo "[!] set BBT_NEW_PASS (or pass --password) to choose the login password" >&2
