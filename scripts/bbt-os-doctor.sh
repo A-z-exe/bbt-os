@@ -226,9 +226,12 @@ svc NetworkManager "NetworkManager"
 svc ssh "SSH server"
 
 if command -v opensc-tool >/dev/null 2>&1; then
-    readers=$(timeout 5 opensc-tool --list-readers 2>/dev/null | grep -c '^#')
-    if [ "${readers:-0}" -gt 0 ]; then
-        pass "smart card reader" "$readers reader(s)"
+    readers=$(timeout 5 opensc-tool --list-readers 2>/dev/null)
+    rc=$?
+    if [ "$rc" -eq 124 ]; then
+        warn "smart card daemon" "pcscd not responding (journalctl -u pcscd; sudo systemctl restart pcscd)"
+    elif [ "$(printf '%s\n' "$readers" | grep -c '^#')" -gt 0 ]; then
+        pass "smart card reader" "$(printf '%s\n' "$readers" | grep -c '^#') reader(s)"
     else
         warn "smart card reader" "none attached"
     fi

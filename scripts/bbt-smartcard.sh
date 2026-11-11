@@ -53,6 +53,16 @@ require() {
     have "$1" || die "$1 is not installed (run: sudo bbt-os-refresh)"
 }
 
+PCSC_TIMEOUT="${BBT_PCSC_TIMEOUT:-10}"
+
+# pcscd can wedge or crash-loop; never let a client block the whole command.
+pcsc() {
+    timeout "$PCSC_TIMEOUT" "$@"
+    local rc=$?
+    [ "$rc" -eq 124 ] && die "PC/SC daemon did not answer in ${PCSC_TIMEOUT}s (pcscd may be crash-looping). Check: journalctl -u pcscd; try: sudo systemctl restart pcscd"
+    return "$rc"
+}
+
 require_auth() {
     [ "$AUTHORIZED" = 1 ] && return 0
     if [ -t 0 ]; then
@@ -69,24 +79,22 @@ EOF
 
 list_readers() {
     if have opensc-tool; then
-        opensc-tool --list-readers
+        pcsc opensc-tool --list-readers
     elif have pcsc_scan; then
-        pcsc_scan -r 2>/dev/null | head -n 12
+        local out
+        out=$(pcsc pcsc_scan -r 2>&1) || return 1
+        printf '%s\n' "$out" | head -n 12
     else
         die "no PC/SC tools installed (run: sudo bbt-os-refresh)"
-    fi
-    if have pcsc_scan; then
-        echo
-        pcsc_scan -r 2>/dev/null | sed -n '1,14p' || true
     fi
 }
 
 print_atr() {
     require opensc-tool
     printf 'ATR      : '
-    opensc-tool --atr 2>/dev/null || { echo "no card or reader"; return 1; }
+    pcsc opensc-tool --atr || { echo "no card or reader"; return 1; }
     printf 'Card     : '
-    opensc-tool --name 2>/dev/null || echo "unknown card"
+    pcsc opensc-tool --name || echo "unknown card"
 }
 
 cmd_status() {
@@ -99,8 +107,12 @@ cmd_status() {
     if have pkcs15-tool; then
         echo
         echo "== PKCS#15 =="
-        pkcs15-tool --list-info 2>/dev/null | head -n 20 || \
+        local info
+        if info=$(pcsc pkcs15-tool --list-info); then
+            printf '%s\n' "$info" | head -n 20
+        else
             echo "no PKCS#15 application on this card"
+        fi
     fi
 }
 
@@ -113,7 +125,7 @@ cmd_info() {
 
 cmd_certs() {
     require pkcs15-tool
-    pkcs15-tool --list-certificates 2>/dev/null || \
+    pcsc pkcs15-tool --list-certificates || \
         die "this card has no readable PKCS#15/PIV certificate store"
 }
 
@@ -124,12 +136,16 @@ cmd_apdu() {
     fi
     [ -n "$ARG" ] || die "usage: bbt-smartcard apdu HEX"
     require_auth
-    opensc-tool --send-apdu "$ARG"
+    pcsc opensc-tool --send-apdu "$ARG"
 }
 
 cmd_nfc_scan() {
     require nfc-list
-    nfc-list -v
+    local rc=0
+    timeout 30 nfc-list -v || rc=$?
+    [ "$rc" -eq 0 ] && return 0
+    [ "$rc" -eq 124 ] && die "NFC scan did not finish in 30s"
+    die "NFC scan failed (no reader or no tag in the field)"
 }
 
 cmd_ndef_read() {
