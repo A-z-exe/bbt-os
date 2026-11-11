@@ -36,11 +36,18 @@ Common options:
   --json             machine-readable output for status/cvss
 
 init options:
-  --scope FILE --authorized [--platform URL] [--currency USD]
+  --program NAME --scope FILE --authorized [--platform URL] [--currency USD]
   [--deadline YYYY-MM-DD] [--test-ip IP] [--min N] [--max N] [--force]
 
+new options:
+  --title TEXT --target URL [--severity High] [--cvss VECTOR]
+  [--test-ip IP] [--out FILE]
+
+check options:
+  REPORT.md [--force]        (scope and evidence issues are never forced)
+
 submit options:
-  --status draft|submitted|triaged|accepted|paid|duplicate|rejected|informative
+  REPORT.md --status draft|submitted|triaged|accepted|paid|duplicate|rejected|informative
   [--bounty N] [--currency USD] [--id R-001] [--note TEXT] [--force]
 
 Authorized testing only. bbt-bounty never contacts a target.
@@ -302,7 +309,7 @@ case "$cmd" in
         slug=$(printf '%s' "$TITLE" | tr 'A-Z' 'a-z' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-50)
         OUT=${OUT:-$PROG_DIR/reports/$(date +%F)-$slug.md}
         [ -e "$OUT" ] && die "new: $OUT exists"
-        sevline=${VEC:-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N}
+        sevline=${VEC:-CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N}
         {
             printf '# %s\n\n' "$TITLE"
             printf -- '- Target: %s\n' "$TARGET"
