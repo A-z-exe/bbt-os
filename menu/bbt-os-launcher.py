@@ -314,9 +314,9 @@ def field_row(label_text: str, widget: Gtk.Widget, *extra: Gtk.Widget) -> Gtk.Bo
 
 
 def valid_ssid(value: str) -> bool:
-    return bool(re.fullmatch(r"[\x20-\x7e]{1,32}", value)) and not any(
-        char in value for char in "*?"
-    )
+    if not 1 <= len(value.encode("utf-8")) <= 32 or any(char in value for char in "*?"):
+        return False
+    return value.isprintable()
 
 
 def valid_bssid(value: str) -> bool:
@@ -362,7 +362,7 @@ def load_cached_aps() -> list[dict]:
             continue
         bssid, ssid, channel, freq, band, signal, sec, wps = parts[:8]
         try:
-            signal_value = int(signal)
+            signal_value = int(float(signal))
         except ValueError:
             signal_value = -100
         rows.append(
