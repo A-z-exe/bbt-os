@@ -29,7 +29,7 @@ warn() { printf '%s[!]%s %s\n' "$AMBER" "$OFF" "$*"; }
 die()  { printf '%s[x]%s %s\n' "$RED" "$OFF" "$*" >&2; exit 1; }
 
 usage() {
-    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+    awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"
 }
 
 require_adb() {

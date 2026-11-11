@@ -252,6 +252,15 @@ if [ "$cmd" = list ]; then
     exit 0
 fi
 
+if [ "$cmd" = cvss ]; then
+    vec=${ARGS[0]:-}
+    [ -n "$vec" ] || die "cvss: pass a CVSS:3.1 vector"
+    score=$(cvss_score "$vec") || die "cvss: invalid or incomplete vector"
+    sev=$(severity_of "$score")
+    printf '%s\nscore: %s\nseverity: %s\n' "$vec" "$score" "$sev"
+    exit 0
+fi
+
 select_program "$PROGRAM"
 PROG_NAME=$(conf_get "$PROG_DIR" name); PROG_NAME=${PROG_NAME:-$(basename "$PROG_DIR")}
 CURRENCY=$(conf_get "$PROG_DIR" currency); CURRENCY=${CURRENCY:-USD}
@@ -277,13 +286,6 @@ case "$cmd" in
                 printf "paid:        %s %s across %d reports\n", paid, cur, paidn
                 if(paidn>0) printf "average:     %.2f %s\n", paid/paidn, cur
             }' "$PROG_DIR/ledger.tsv"
-        exit 0 ;;
-    cvss)
-        vec=${ARGS[0]:-}
-        [ -n "$vec" ] || die "cvss: pass a CVSS:3.1 vector"
-        score=$(cvss_score "$vec") || die "cvss: invalid or incomplete vector"
-        sev=$(severity_of "$score")
-        printf '%s\nscore: %s\nseverity: %s\n' "$vec" "$score" "$sev"
         exit 0 ;;
     new)
         TITLE=""; TARGET=""; OUT=""; SEV="High"; VEC=""; TESTIP="$TEST_IP_DEFAULT"
