@@ -50,7 +50,7 @@ EOF
 slugify() { printf '%s' "$1" | tr 'A-Z' 'a-z' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//'; }
 
 norm_host() {
-    printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#[/:?#].*$##' | tr 'A-Z' 'a-z'
+    printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#^//##; s#^[^/@]*@##; s#[/:?#].*$##' | tr 'A-Z' 'a-z'
 }
 
 norm_path() {
@@ -69,7 +69,7 @@ scope_allows() {
         [ -n "$entry" ] || continue
         ehost=$(norm_host "$entry"); epath=$(norm_path "$entry")
         case "$ehost" in
-            \**) case "$host" in *"${ehost#\*}" ) : ;; *) continue ;; esac ;;
+            \*.*) case "$host" in *".${ehost#\*.}") : ;; *) continue ;; esac ;;
             *)   [ "$host" = "$ehost" ] || case "$host" in *".$ehost") : ;; *) continue ;; esac ;;
         esac
         [ "$epath" = "/" ] || [ "$epath" = "$ppath" ] && return 0
@@ -198,6 +198,9 @@ if [ "$cmd" = init ]; then
         printf 'created=%s\n' "$(date +%F)"
         printf 'authorized=1\n'
     } >"$PROG_DIR/program.conf"
+    if [ -s "$PROG_DIR/ledger.tsv" ]; then
+        cp "$PROG_DIR/ledger.tsv" "$PROG_DIR/archive/ledger-$(date +%Y%m%d-%H%M%S).tsv"
+    fi
     : >"$PROG_DIR/ledger.tsv"
     cat >"$PROG_DIR/report-template.md" <<EOF
 # <exact vulnerability and affected endpoint>
@@ -320,8 +323,9 @@ REPORT=${ARGS[0]:-}
 [ -f "$REPORT" ] || die "$cmd: report not found: $REPORT"
 
 # ---- quality gate ---------------------------------------------------------
-BLOCKS=0; WARNS=0
+BLOCKS=0; WARNS=0; HARD=0
 block() { printf '%s[BLOCK]%s %s\n' "$RED" "$OFF" "$*"; BLOCKS=$((BLOCKS+1)); }
+hard_block() { block "$@"; HARD=$((HARD+1)); }
 notet() { printf '%s[WARN]%s  %s\n' "$AMBER" "$OFF" "$*"; WARNS=$((WARNS+1)); }
 ok()    { printf '%s[ OK ]%s  %s\n' "$GREEN" "$OFF" "$*"; }
 
@@ -332,7 +336,7 @@ TARGET=$(field_of "$REPORT" Target)
 if [ -z "$TARGET" ]; then
     block "missing 'Target:' metadata"
 elif ! scope_allows "$TARGET" "$SCOPE_FILE"; then
-    block "target is outside $SCOPE_FILE: $TARGET"
+    hard_block "target is outside $SCOPE_FILE: $TARGET"
 else
     ok "target is in scope"
 fi
@@ -376,14 +380,14 @@ for r in "${REFS[@]}"; do
     elif [ -f "$REPORT_DIR/../$r" ]; then
         :
     else
-        block "evidence file missing: $r"; badref=1
+        hard_block "evidence file missing: $r"; badref=1
     fi
 done
 if [ "${#REFS[@]}" -eq 0 ]; then
     if grep -qE '^[[:space:]]*(curl|GET |POST |PUT |PATCH |DELETE )' "$REPORT"; then
         notet "inline request found but no evidence file attached"
     else
-        block "no evidence file and no request in the report"
+        hard_block "no evidence file and no request in the report"
     fi
 elif [ "$badref" = 0 ]; then
     ok "${#REFS[@]} evidence file(s) present"
@@ -395,7 +399,7 @@ if grep -qiE '(curl|wget)[[:space:]]|^[[:space:]]*(GET|POST|PUT|PATCH|DELETE)[[:
 elif grep -qiE '^[[:space:]]*[0-9]+\.' "$REPORT"; then
     notet "numbered steps but no raw HTTP request; add the exact request"
 else
-    block "no reproducible request (curl or raw HTTP) and no numbered steps"
+    hard_block "no reproducible request (curl or raw HTTP) and no numbered steps"
 fi
 
 # scanner output without a manual confirmation is not a report
@@ -456,6 +460,11 @@ if [ -s "$PROG_DIR/ledger.tsv" ] && [ -n "$TARGET" ]; then
     [ -n "$dup" ] && notet "same title and target already recorded: $(printf '%s' "$dup" | cut -f1,2,3)"
 fi
 
+if [ "$HARD" -gt 0 ]; then
+    printf '\n%sBLOCKED%s: %d issue(s) cannot be overridden with --force (scope or evidence).\n' \
+        "$RED" "$OFF" "$HARD"
+    exit 1
+fi
 if [ "$BLOCKS" -gt 0 ]; then
     if [ "$cmd" = submit ] && printf '%s\n' "${ARGS[@]}" | grep -qx -- '--force'; then
         warn "gate has $BLOCKS blocking issue(s); continuing because --force was passed"

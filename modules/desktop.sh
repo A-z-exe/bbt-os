@@ -10,8 +10,8 @@ install_desktop() {
         rm -rf /opt/bbt-os/.git /opt/bbt-os/menu/__pycache__
         # bbt-run executes scripts from here as root, so this tree must never
         # keep foreign ownership or group/world write bits from a share.
-        chown -R root:root /opt/bbt-os
-        chmod -R go-w /opt/bbt-os
+        chown -R root:root /opt/bbt-os || { log "cannot make /opt/bbt-os root-owned"; exit 1; }
+        chmod -R go-w /opt/bbt-os || { log "cannot strip write bits from /opt/bbt-os"; exit 1; }
     fi
     install -d /usr/share/bbt-os /usr/share/bbt-os/icons /usr/share/icons/hicolor/scalable/apps
     install -m 644 "$HERE/assets/bbt-os.svg" /usr/share/bbt-os/bbt-os.svg

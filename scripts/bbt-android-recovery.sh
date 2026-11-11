@@ -216,11 +216,11 @@ cmd_pull() {
     local -a paths=()
     while [ $# -gt 0 ]; do
         case "$1" in
-            --serial) serial=$2; shift 2 ;;
+            --serial) [ $# -ge 2 ] || die "--serial needs a value"; serial=$2; shift 2 ;;
             --serial=*) serial=${1#*=}; shift ;;
-            --dest) dest=$2; shift 2 ;;
+            --dest) [ $# -ge 2 ] || die "--dest needs a value"; dest=$2; shift 2 ;;
             --dest=*) dest=${1#*=}; shift ;;
-            --path) paths+=("$2"); shift 2 ;;
+            --path) [ $# -ge 2 ] || die "--path needs a value"; paths+=("$2"); shift 2 ;;
             --path=*) paths+=("${1#*=}"); shift ;;
             --all) all=1; shift ;;
             --i-own-this-device) CONSENT=1; shift ;;

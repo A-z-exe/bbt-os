@@ -21,7 +21,7 @@ case "${1:-start}" in
         if "${DOCKER[@]}" ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$NAME"; then
             "${DOCKER[@]}" start "$NAME" >/dev/null || exit 1
         else
-            "${DOCKER[@]}" run -d --name "$NAME" -p "$PORT:8000" "$IMAGE" >/dev/null || {
+            "${DOCKER[@]}" run -d --name "$NAME" -p "127.0.0.1:$PORT:8000" "$IMAGE" >/dev/null || {
                 echo "could not start MobSF; pull the image with:" >&2
                 echo "  sudo docker pull $IMAGE" >&2
                 exit 1

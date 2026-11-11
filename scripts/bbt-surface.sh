@@ -37,7 +37,7 @@ EOF
 }
 
 norm_host() {
-    printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#[/:?#].*$##' | tr 'A-Z' 'a-z'
+    printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#^//##; s#^[^/@]*@##; s#[/:?#].*$##' | tr 'A-Z' 'a-z'
 }
 
 norm_path() {
@@ -61,7 +61,7 @@ scope_allows() {
         [ -n "$entry" ] || continue
         ehost=$(norm_host "$entry"); epath=$(norm_path "$entry")
         case "$ehost" in
-            \**) case "$host" in *"${ehost#\*}" ) : ;; *) continue ;; esac ;;
+            \*.*) case "$host" in *".${ehost#\*.}") : ;; *) continue ;; esac ;;
             *)   [ "$host" = "$ehost" ] || case "$host" in *".$ehost") : ;; *) continue ;; esac ;;
         esac
         if [ "$epath" = "/" ] || [ "$epath" = "$ppath" ]; then
@@ -134,7 +134,7 @@ mkdir -p "$RUN/evidence"
 rm -f "$RUNS/latest-surface" 2>/dev/null || true
 ln -sfn "$RUN" "$RUNS/latest-surface"
 UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36 bbt-surface/$VERSION"
-CURL=(curl -sS -A "$UA" --max-time "$TIMEOUT" --max-redirs 0)
+CURL=(curl -sS -A "$UA" --max-time "$TIMEOUT" --max-redirs 0 --max-filesize 10000000)
 
 info "run directory: $RUN"
 printf 'target: %s\nscope: %s\nstarted: %s\n' "$URL" "$SCOPE" "$(date -Is)" >"$RUN/run.txt"
@@ -182,15 +182,19 @@ ROOT_SIZE=$(wc -c <"$RUN/evidence/root" 2>/dev/null || echo 0)
 } >"$RUN/headers.txt"
 info "HTTP $ROOT_CODE, $ROOT_SIZE bytes"
 
-for h in content-security-policy strict-transport-security x-frame-options x-content-type-options referrer-policy permissions-policy; do
-    grep -qi "^$h:" "$RUN/headers.txt" || printf 'missing-header: %s\n' "$h" >>"$RUN/findings.txt"
-done
-awk 'BEGIN{IGNORECASE=1} /^set-cookie:/{
-    name=$2; sub(/=.*/,"",name)
-    if ($0 !~ /secure/)   printf "cookie-missing-secure: %s\n", name
-    if ($0 !~ /httponly/) printf "cookie-missing-httponly: %s\n", name
-    if ($0 !~ /samesite/) printf "cookie-missing-samesite: %s\n", name
-}' "$RUN/headers.txt" 2>/dev/null >>"$RUN/findings.txt"
+case "$ROOT_CODE" in
+    2??)
+        for h in content-security-policy strict-transport-security x-frame-options x-content-type-options referrer-policy permissions-policy; do
+            grep -qi "^$h:" "$RUN/headers.txt" || printf 'missing-header: %s\n' "$h" >>"$RUN/findings.txt"
+        done
+        awk 'BEGIN{IGNORECASE=1} /^set-cookie:/{
+            name=$2; sub(/=.*/,"",name)
+            if ($0 !~ /secure/)   printf "cookie-missing-secure: %s\n", name
+            if ($0 !~ /httponly/) printf "cookie-missing-httponly: %s\n", name
+            if ($0 !~ /samesite/) printf "cookie-missing-samesite: %s\n", name
+        }' "$RUN/headers.txt" 2>/dev/null >>"$RUN/findings.txt"
+        ;;
+esac
 
 # --- 2. fixed discovery paths (no brute force) -----------------------------
 looks_like() {
@@ -240,7 +244,7 @@ while IFS= read -r src; do
     "${CURL[@]}" --max-filesize 6000000 -o "$RUN/evidence/bundle-$n.js" "$burl" 2>/dev/null || true
     f="$RUN/evidence/bundle-$n.js"
     [ -f "$f" ] || continue
-    grep -oE 'sourceMappingURL=[^[:space:]"]+' "$f" | grep -E '\.map$' | awk -v s="$src" '{print s " -> " $0}' >>"$RUN/maps.txt"
+    grep -oE 'sourceMappingURL=[^[:space:]"]+' "$f" | grep -E '\.map$' | awk -v s="$burl" '{print s " -> " $0}' >>"$RUN/maps.txt"
     grep -oE '(https?://[A-Za-z0-9._-]+(:[0-9]+)?)' "$f" | sort -u >>"$RUN/api-hosts.txt"
     grep -oE '(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|gh[pousr]_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})' "$f" \
         | awk -v s="$(basename "$src")" '{print s ": " $0}' >>"$RUN/secrets.txt"
@@ -253,13 +257,18 @@ sort -u "$RUN/secrets.txt" -o "$RUN/secrets.txt"
 # --- 4. source maps referenced by bundles ---------------------------------
 if [ -s "$RUN/maps.txt" ]; then
     while IFS= read -r line; do
+        burl=$(printf '%s' "$line" | sed -E 's/[[:space:]]+->[[:space:]]+sourceMappingURL=.*$//')
         mpath=$(printf '%s' "$line" | sed -E 's/^.*sourceMappingURL=//')
         case "$mpath" in
             http*|//*|data:*) continue ;;
             *.map) : ;;
             *) continue ;;
         esac
-        mapurl="$SCHEME://$HOST${mpath#/}"
+        case "$mpath" in
+            /*) mapurl="$SCHEME://$HOST$mpath" ;;
+            *) mapurl="${burl%/*}/$mpath" ;;
+        esac
+        scope_allows "$mapurl" "$SCOPE" || continue
         "${CURL[@]}" -o /dev/null -w '%{http_code}' "$mapurl" 2>/dev/null \
             | grep -q '^200$' && printf 'exposed-source-map: %s\n' "$mpath" >>"$RUN/findings.txt"
     done <"$RUN/maps.txt"

@@ -128,8 +128,8 @@ workflow_web() {
     local out="$RUN" subs="$RUN/subdomains.txt" live="$RUN/live.txt"
     printf '%s\n' "$domain" >"$subs"
     if have subfinder; then
-        run "subfinder $domain" bash -c \
-            "subfinder -d '$domain' -silent 2>/dev/null | sort -u >>'$subs'"
+        run "subfinder $domain" subfinder -d "$domain" -silent -o "$RUN/subfinder.txt"
+        [ -s "$RUN/subfinder.txt" ] && sort -u "$subs" "$RUN/subfinder.txt" -o "$subs"
     else
         warn "subfinder missing; continuing with the target host"
         printf '%s\n' "$host" >>"$subs"
@@ -149,20 +149,23 @@ workflow_web() {
     fi
 
     if have httpx; then
-        run "httpx probing" bash -c \
-            "httpx -l '$subs' -silent -title -tech-detect -status-code -web-server -o '$live'"
+        run "httpx probing" httpx -l "$subs" -silent -title -tech-detect -status-code \
+            -web-server -o "$live"
+        awk '{print $1}' "$live" 2>/dev/null | grep -E '^https?://' | sort -u >"$RUN/live-urls.txt"
     else
         warn "httpx missing; writing raw hosts as live targets"
         cp "$subs" "$live"
+        cp "$subs" "$RUN/live-urls.txt"
     fi
+    [ -s "$RUN/live-urls.txt" ] || cp "$subs" "$RUN/live-urls.txt"
 
     if [ "$deep" = 1 ]; then
         if have katana; then
-            run "katana crawl" bash -c \
-                "katana -list '$live' -silent -jc -d 2 -rl 40 -o '$RUN/crawl.txt'"
+            run "katana crawl" katana -list "$RUN/live-urls.txt" -silent -jc -d 2 -rl 40 \
+                -o "$RUN/crawl.txt"
         fi
         if have nuclei; then
-            run "nuclei templates" nuclei -l "$live" -severity low,medium,high,critical \
+            run "nuclei templates" nuclei -l "$RUN/live-urls.txt" -severity low,medium,high,critical \
                 -rl 30 -c 10 -o "$RUN/nuclei.txt"
         fi
     fi

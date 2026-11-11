@@ -38,8 +38,15 @@ check_root_owned() {
     (( (8#$mode & 8#22) == 0 )) || die "refusing group/world-writable $path"
 }
 
+check_tree() {
+    local bad
+    bad=$(find /opt/bbt-os \( ! -user root -o -perm /022 \) -print -quit 2>/dev/null)
+    [ -z "$bad" ] || die "refusing unsafe tree entry $bad"
+}
+
 check_root_owned "$TOOLS_ROOT"
 check_root_owned "$target"
+check_tree
 
 uid="${PKEXEC_UID:-${SUDO_UID:-0}}"
 [ "$uid" -gt 0 ] || die "no desktop user in PKEXEC_UID"
@@ -48,7 +55,7 @@ user=$(getent passwd "$uid" | cut -d: -f1)
 home=$(getent passwd "$uid" | cut -d: -f6)
 [ -d "$home" ] || home=/root
 
-export HOME="$home" USER="$user" LOGNAME="$user"
+export HOME="$home" USER="$user" LOGNAME="$user" SUDO_USER="$user"
 export PATH="$TOOLS_ROOT:$BIN_DIR:/usr/local/sbin:/usr/sbin:/sbin:/usr/bin:/bin"
 export LANG="${LANG:-C.UTF-8}"
 [ -n "${TERM:-}" ] && export TERM

@@ -8,7 +8,11 @@
 #
 # The Windows side must be started first: it listens, Kali connects out.
 set -uo pipefail
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+if [ "$(id -u)" -eq 0 ]; then
+    export PATH="/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+else
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+fi
 
 CONF=/etc/reader.conf.d/vpcd
 LIBPATH=/usr/lib/pcsc/drivers/serial/libifdvpcd.so
@@ -54,9 +58,14 @@ reachable() {
 }
 
 restart_pcscd() {
-    need_sudo systemctl restart pcscd.socket >/dev/null 2>&1 \
-        || need_sudo systemctl restart pcscd >/dev/null 2>&1 \
-        || die "could not restart pcscd"
+    if systemctl is-active --quiet pcscd; then
+        need_sudo systemctl restart pcscd >/dev/null 2>&1 \
+            || die "could not restart pcscd"
+    else
+        need_sudo systemctl restart pcscd.socket >/dev/null 2>&1 \
+            || need_sudo systemctl start pcscd >/dev/null 2>&1 \
+            || die "could not start pcscd"
+    fi
     sleep 1
     if systemctl is-active --quiet pcscd; then
         say "pcscd restarted."
@@ -93,6 +102,8 @@ setup() {
     say "Checking the Windows relay at $host:$port..."
     reachable "$host" "$port" \
         || die "no relay at $host:$port - start SmartCardRelay.exe on the Windows machine first"
+    say "Note: VPCD is unauthenticated and unencrypted. Use it only on a"
+    say "trusted network; card PINs and APDUs cross the LAN in clear text."
 
     local channel
     channel="$(printf '0x%X' "$port")"

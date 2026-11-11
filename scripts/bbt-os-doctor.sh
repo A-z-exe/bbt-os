@@ -29,6 +29,10 @@ done
 
 # --summary is consumed by the launcher status bar: one line, no report body.
 [ "$SUMMARY" = 1 ] && QUIET=1
+# A --fix pass only repairs; the clean re-exec below prints the new report.
+if [ "$FIX" = 1 ] && [ "${BBT_DOCTOR_FIXED:-0}" != 1 ]; then
+    QUIET=1
+fi
 
 PASS=0
 WARN=0
@@ -43,7 +47,7 @@ cyan()  { printf '\033[36m%s\033[0m' "$*"; }
 
 section() { [ "$JSON" = 1 ] || [ "$QUIET" = 1 ] || printf '\n%s\n' "$(cyan "== $* ==")"; }
 
-jesc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/ /g'; }
+jesc() { printf '%s' "$1" | sed -e 's/[[:cntrl:]]/ /g' -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 
 record() {
     local status=$1 name=$2 detail=$3
@@ -71,20 +75,27 @@ need_root_fix() {
 }
 
 if need_root_fix; then
-    exec sudo -E bash "$0" --fix
+    exec sudo -E bash "$0" "$@"
 fi
 
 target_user() {
-    if id bbt >/dev/null 2>&1; then echo bbt
-    elif [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then echo "$SUDO_USER"
+    local uid=${PKEXEC_UID:-}
+    if [ -n "$uid" ] && [ "$uid" != 0 ]; then
+        getent passwd "$uid" | cut -d: -f1
+        return
+    fi
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then echo "$SUDO_USER"
+    elif id bbt >/dev/null 2>&1; then echo bbt
     else id -un
     fi
 }
 TU="$(target_user)"
 TH="$(getent passwd "$TU" | cut -d: -f6)"
 [ -d "$TH" ] || TH="/home/kali"
-# pipx/uv tools live in ~/.local/bin and are absent from a non-login PATH
-export PATH="$TH/.local/bin:/usr/local/bin:$PATH"
+if [ "$(id -u)" -ne 0 ]; then
+    # pipx/uv tools live in ~/.local/bin and are absent from a non-login PATH
+    export PATH="$TH/.local/bin:/usr/local/bin:$PATH"
+fi
 
 as_target() {
     if [ "$(id -u)" -eq 0 ]; then runuser -u "$TU" -- "$@"; else "$@"; fi
@@ -92,19 +103,38 @@ as_target() {
 
 probe() {
     # probe <tool> -> prints first non-empty line of a version/help invocation
-    local tool=$1 flag out
-    command -v "$tool" >/dev/null 2>&1 || return 127
+    local tool=$1 bin flag out
+    bin=$(command -v "$tool" 2>/dev/null) || bin="$TH/.local/bin/$tool"
+    [ -x "$bin" ] || return 127
+    local -a runner=("$bin")
+    if [ "$(id -u)" -eq 0 ] && [ "${bin#"$TH"/}" != "$bin" ]; then
+        runner=(runuser -u "$TU" -- "$bin")
+    fi
     for flag in --version -version -V version -h --help -Help -help; do
-        out=$(timeout 6 "$tool" "$flag" 2>&1 | tr -s '\r' '\n' | grep -m1 -v '^[[:space:]]*$' | cut -c1-64)
+        out=$(timeout 6 "${runner[@]}" "$flag" 2>&1 | tr -s '\r' '\n' | grep -m1 -v '^[[:space:]]*$' | cut -c1-64)
         [ -n "$out" ] && { printf '%s' "$out"; return 0; }
     done
     return 1
 }
 
+tool_name() {
+    # tool_name "a|b" -> prints the first installed name, or nothing
+    local name
+    local -a names=()
+    IFS='|' read -ra names <<<"$1"
+    for name in "${names[@]}"; do
+        if command -v "$name" >/dev/null 2>&1 || [ -x "$TH/.local/bin/$name" ]; then
+            printf '%s' "$name"
+            return 0
+        fi
+    done
+    return 1
+}
+
 check_tool() {
-    # check_tool <tool> <group> <package> <required 1|0>
-    local tool=$1 group=$2 pkg=$3 required=$4 out rc
-    if ! command -v "$tool" >/dev/null 2>&1 && [ ! -x "$TH/.local/bin/$tool" ]; then
+    # check_tool <tool[|alias]> <group> <package> <required 1|0>
+    local tool=$1 group=$2 pkg=$3 required=$4 out rc found
+    if ! found=$(tool_name "$tool"); then
         if [ "$required" = 1 ]; then
             fail "$tool" "missing (package: $pkg)"
         else
@@ -112,7 +142,7 @@ check_tool() {
         fi
         return
     fi
-    out=$(probe "$tool")
+    out=$(probe "$found")
     rc=$?
     if [ $rc -eq 0 ]; then
         pass "$tool" "$out"
@@ -234,12 +264,12 @@ section "TOOLCHAIN"
 # ---------------------------------------------------------------------------
 # tool:package:required
 TOOLS=(
-    "subfinder:kali-tools-web:1" "httpx:kali-tools-web:1" "nuclei:kali-tools-web:1"
+    "subfinder:kali-tools-web:1" "httpx|httpx-toolkit:kali-tools-web:1" "nuclei:kali-tools-web:1"
     "katana:kali-tools-web:1" "naabu:kali-tools-web:1" "dnsx:kali-tools-web:1"
     "ffuf:ffuf:1" "feroxbuster:feroxbuster:1" "nmap:nmap:1" "masscan:masscan:1"
     "whatweb:whatweb:1" "nikto:nikto:1" "wpscan:wpscan:1" "sqlmap:sqlmap:1"
     "dalfox:dalfox:1" "arjun:arjun:0" "gobuster:gobuster:0" "wafw00f:wafw00f:0"
-    "amass:amass:0" "gowitness:gowitness:0" "theharvester:theharvester:0"
+    "amass:amass:0" "gowitness:gowitness:0" "theharvester|theHarvester:theharvester:0"
     "adb:adb:1" "apktool:apktool:1" "jadx:jadx:1" "d2j-dex2jar:dex2jar:1"
     "frida-ps:frida-tools:1" "objection:objection:1" "scrcpy:scrcpy:1"
     "netexec:netexec:1" "evil-winrm:evil-winrm:1" "responder:responder:1"
@@ -299,6 +329,7 @@ fi
 [ -d /usr/share/bbt-os/icons ] && pass "BBT icon theme" "$(ls /usr/share/bbt-os/icons/*.svg 2>/dev/null | wc -l) icons" \
     || warn "BBT icon theme" "not installed"
 
+if [ "$FIX" = 0 ]; then
 if [ "$JSON" = 0 ] && [ "$QUIET" = 0 ]; then
     printf '\n%s  %s pass  %s warn  %s fail\n' "$(cyan SUMMARY)" \
         "$(green "$PASS")" "$(amber "$WARN")" "$(red "$FAIL")"
@@ -319,6 +350,7 @@ if [ "$JSON" = 1 ]; then
     for e in "${ENTRIES[@]}"; do printf '%s%s' "$sep" "$e"; sep=,; done
     printf ']}\n'
 fi
+fi
 
 if [ "$FIX" = 1 ]; then
     section "FIX"
@@ -327,7 +359,7 @@ if [ "$FIX" = 1 ]; then
     fix_pkgs=()
     for entry in "${TOOLS[@]}"; do
         IFS=: read -r tool pkg required <<<"$entry"
-        if [ "$required" = 1 ] && ! command -v "$tool" >/dev/null 2>&1; then
+        if [ "$required" = 1 ] && ! tool_name "$tool" >/dev/null; then
             case "$pkg" in
                 kali-tools-web|docker.io) continue ;;
                 frida-tools|objection) continue ;;  # pipx-managed below
@@ -367,6 +399,11 @@ if [ "$FIX" = 1 ]; then
     if [ -x /usr/local/bin/bbt-os-doctor ]; then
         [ "$JSON" = 1 ] || printf '  rerun %s for the updated report\n' "$(cyan bbt-os-doctor)"
     fi
+    args=()
+    for a in "$@"; do
+        [ "$a" = "--fix" ] || args+=("$a")
+    done
+    exec env BBT_DOCTOR_FIXED=1 bash "$0" "${args[@]}"
 fi
 
 [ "$FAIL" -gt 0 ] && exit 1

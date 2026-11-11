@@ -1,10 +1,11 @@
-// BBT OS: let local desktop users talk to pcscd without a polkit prompt.
+// BBT OS: let the BBT desktop session talk to pcscd without a polkit prompt.
 // pcsc-lite ships access_pcsc/access_card as allow_active=yes, but on this
 // image pcscd answers the check with "not authorized", which breaks
-// pcsc_scan, opensc-tool and the VPCD remote card reader. subject.local is
-// false for SSH sessions, so remote logins stay denied.
+// pcsc_scan, opensc-tool and the VPCD remote card reader. Scoped to the local
+// active session of the install user, so other accounts and SSH stay denied.
 polkit.addRule(function(action, subject) {
-    if (action.id.indexOf("org.debian.pcsc-lite.") === 0 && subject.local) {
-        return polkit.Result.YES;
-    }
+    if (action.id.indexOf("org.debian.pcsc-lite.") !== 0) { return; }
+    if (!subject.local || !subject.active) { return; }
+    if (subject.user !== "@BBT_USER@") { return; }
+    return polkit.Result.YES;
 });

@@ -150,8 +150,8 @@ def root_command(tool: str, arguments: str = "") -> str:
     bbt-run is root-owned and allowlisted; the matching polkit rule covers
     this local desktop session, so no terminal password prompt is shown.
     """
-    if ROOT_HELPER.is_file():
-        pkexec = which("pkexec") or "/usr/bin/pkexec"
+    pkexec = which("pkexec")
+    if ROOT_HELPER.is_file() and pkexec:
         command = f"{shlex.quote(pkexec)} {shlex.quote(str(ROOT_HELPER))} {tool}"
         return f"{command} {arguments}".rstrip()
     return sudo_command(tool, arguments)
@@ -980,14 +980,15 @@ class BBTWindow(Gtk.Window):
         launch_terminal("BBT OS doctor", root_command("bbt-os-doctor"), self)
 
     def update_bbt(self) -> None:
-        repo, _argv = bbt_invocation()
+        repo, argv = bbt_invocation()
         if not (Path(repo) / ".git").is_dir():
             show_error("BBT is not a git checkout, so it cannot be updated this way.", self)
             return
-        command = (
-            f"cd {shlex.quote(repo)} && git pull --ff-only && "
-            ".venv-sys/bin/pip install -e . && bbt --version"
-        )
+        if len(argv) >= 2 and argv[1] == "-m":
+            runner = f"{shlex.quote(argv[0])} -m pip install -e . && {shlex.quote(argv[0])} -m bbt --version"
+        else:
+            runner = f"{shlex.quote(argv[0])} --version"
+        command = f"cd {shlex.quote(repo)} && git pull --ff-only && {runner}"
         launch_terminal("Update BBT toolkit", command, self)
 
     def choose_apk(self) -> str | None:

@@ -2,7 +2,11 @@
 # bbt-smartcard - PC/SC smart card and NFC tag helper.
 # Cards and tags you own or are explicitly authorized to test only.
 set -uo pipefail
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+if [ "$(id -u)" -eq 0 ]; then
+    export PATH="/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+else
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+fi
 
 AUTHORIZED=0
 COMMAND=""

@@ -39,6 +39,14 @@ rm -f /etc/systemd/logind.conf.d/99-bbt-os-no-sleep.conf
 rm -f /usr/share/mime/packages/bbt-os-installer.xml
 rm -f /usr/share/icons/hicolor/scalable/apps/bbt-os.svg
 rm -rf /usr/share/bbt-os /opt/bbt-os
+rm -f /etc/sysctl.d/90-bbt-scan.conf
+rm -f /var/backups/bbt-ktune-*.conf
+rm -f /etc/modules-load.d/bbt-os.conf
+if [ -f /etc/reader.conf.d/vpcd ] && grep -q 'BBT Remote Card' /etc/reader.conf.d/vpcd; then
+    rm -f /etc/reader.conf.d/vpcd
+fi
+systemctl try-restart polkit >/dev/null 2>&1 || true
+systemctl try-restart pcscd >/dev/null 2>&1 || true
 
 update-mime-database /usr/share/mime >/dev/null 2>&1 || true
 update-desktop-database /usr/share/applications >/dev/null 2>&1 || true

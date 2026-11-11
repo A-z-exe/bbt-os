@@ -237,7 +237,7 @@ sudo bbt-wifi scan              # active scan -> ~/bbt/wifi/last-scan.tsv
 bbt-wifi plan --ssid MyNetwork  # show the tool chain before running it
 sudo bbt-wifi attack --ssid MyNetwork --authorized
 sudo bbt-wifi attack --ssid MyNetwork --method wps --authorized
-sudo bbt-wifi attack --ssid MyNetwork --deauth --authorized   # 3 frames max
+sudo bbt-wifi attack --ssid MyNetwork --deauth --authorized   # capped at 3
 bbt-wifi crack --hash ~/bbt/wifi/latest/hashes.22000
 bbt-wifi captures --open
 bbt-wifi doctor
@@ -247,7 +247,7 @@ In the launcher, open **Wireless > Wi-Fi capture + crack**: pick the network
 from the cached scan (or type the SSID), the method label shows what BBT will
 use and why, then Start opens a terminal and runs the whole chain as root
 through `bbt-run` (no sudo prompt). The attack is scoped to the single BSSID
-you picked, deauth is off by default and capped at 3 frames, and every run is
+you picked, deauth is off by default and capped at three attempts, and every run is
 saved to `~/bbt/wifi/<ssid>-<time>/` with `summary.md`, `run.log`, captures
 and `history.tsv`.
 
@@ -287,7 +287,7 @@ another computer. The password is generated once and stored in
 ```bash
 bbt-access start --public              # auto: serveo -> localhost.run -> cloudflare
 bbt-access start --public --expire 30  # stop automatically after 30 minutes
-bbt-access start --lan                 # local network only, no tunnel
+bbt-access start --lan                 # local network only, plain HTTP (no TLS)
 bbt-access status                      # link, provider and remaining time
 bbt-access link                        # print link and credentials again
 bbt-access stop

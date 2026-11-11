@@ -21,8 +21,9 @@
 #   --reset-password  generate a new password
 #   --authorized      skip the public-exposure confirmation
 #
-# The link is protected with HTTP Basic auth over TLS. Anyone who has both the
-# link and the password gets a shell on this machine, so treat them as secrets.
+# The link is protected with HTTP Basic auth. Public providers terminate TLS;
+# --lan serves plain HTTP on the local network. Anyone who has both the link and
+# the password gets a shell on this machine, so treat them as secrets.
 set -uo pipefail
 
 SELF=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
@@ -144,10 +145,15 @@ load_creds() {
 }
 
 kill_pidfile() {
-    local f=$1 pid
+    local f=$1 pattern=${2:-} pid
     [ -f "$f" ] || return 0
     pid=$(cat "$f" 2>/dev/null)
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        if [ -n "$pattern" ] \
+           && ! tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null | grep -q -- "$pattern"; then
+            rm -f "$f"
+            return 0
+        fi
         kill "$pid" 2>/dev/null || true
         local i=0
         while kill -0 "$pid" 2>/dev/null && [ "$i" -lt 20 ]; do sleep 0.1; i=$((i+1)); done
@@ -157,10 +163,10 @@ kill_pidfile() {
 }
 
 cmd_stop() {
-    kill_pidfile "$STATE_DIR/tunnel.pid"
-    kill_pidfile "$STATE_DIR/cloudflared.pid"
-    kill_pidfile "$STATE_DIR/ttyd.pid"
-    kill_pidfile "$STATE_DIR/timer.pid"
+    kill_pidfile "$STATE_DIR/tunnel.pid" ssh
+    kill_pidfile "$STATE_DIR/cloudflared.pid" cloudflared
+    kill_pidfile "$STATE_DIR/ttyd.pid" ttyd
+    kill_pidfile "$STATE_DIR/timer.pid" bbt-access
     rm -f "$STATE_DIR/url" "$STATE_DIR/started" "$STATE_DIR/expire" "$STATE_DIR/provider" "$STATE_DIR/port"
     info "access stopped"
 }
@@ -235,10 +241,15 @@ cmd_start() {
     port_open "$PORT" && die "port $PORT is already in use; pick another with --port"
 
     local bind="127.0.0.1"
-    [ "$LAN" = 1 ] && bind="0.0.0.0"
+    if [ "$LAN" = 1 ]; then
+        bind="0.0.0.0"
+        printf '%s[!]%s --lan serves plain HTTP on the local network; the login\n' \
+            "$AMBER" "$OFF"
+        printf '    password crosses the wire unencrypted. Prefer a public tunnel.\n'
+    fi
 
     local args=(-p "$PORT" -i "$bind" -c "$ACCESS_USER:$PASSWORD" -t "titleFixed=BBT Access")
-    [ "$READONLY" = 0 ] && args+=(-W)
+    if [ "$READONLY" = 1 ]; then args+=(-R); else args+=(-W); fi
 
     # shellcheck disable=SC2086
     setsid nohup "$TTYD" "${args[@]}" $SHELL_CMD >"$STATE_DIR/ttyd.log" 2>&1 &
@@ -271,7 +282,7 @@ cmd_start() {
             esac
             if [ -n "$pub" ]; then provider=$p; break; fi
             warn "$p tunnel did not come up"
-            kill_pidfile "$STATE_DIR/tunnel.pid"
+            kill_pidfile "$STATE_DIR/tunnel.pid" ssh
         done
         if [ -z "$pub" ]; then
             tail -n 4 "$STATE_DIR/tunnel.log" >&2 2>/dev/null || true

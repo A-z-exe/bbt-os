@@ -83,15 +83,18 @@ do_apply() {
     [ "$(id -u)" = 0 ] || die "--apply needs root: sudo bbt-ktune --apply"
     mkdir -p "$BACKUP_DIR"
     local stamp backup row key val cur
-    stamp=$(date +%Y%m%d-%H%M%S)
-    backup="$BACKUP_DIR/bbt-ktune-$stamp.conf"
-    : >"$backup"
-    for row in "${SETTINGS[@]}"; do
-        IFS='|' read -r key val _ <<<"$row"
-        cur=$(current "$key")
-        [ -n "$cur" ] && printf '%s = %s\n' "$key" "$cur" >>"$backup"
-    done
-    chmod 600 "$backup"
+    backup=$(ls -1t "$BACKUP_DIR"/bbt-ktune-*.conf 2>/dev/null | head -n1)
+    if [ -z "$backup" ]; then
+        stamp=$(date +%Y%m%d-%H%M%S)
+        backup="$BACKUP_DIR/bbt-ktune-$stamp.conf"
+        : >"$backup"
+        for row in "${SETTINGS[@]}"; do
+            IFS='|' read -r key val _ <<<"$row"
+            cur=$(current "$key")
+            [ -n "$cur" ] && printf '%s = %s\n' "$key" "$cur" >>"$backup"
+        done
+        chmod 600 "$backup"
+    fi
     info "backup: $backup"
 
     print_plan >"$DROPIN"
@@ -112,6 +115,7 @@ do_revert() {
     if [ -n "$backup" ]; then
         info "restoring $backup"
         sysctl -p "$backup" >/dev/null 2>&1 || warn "some values could not be restored"
+        rm -f "$backup"
     else
         warn "no backup found; removing the drop-in only"
     fi

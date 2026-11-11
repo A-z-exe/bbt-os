@@ -4,6 +4,10 @@
 
 install_root_helper() {
     step "Privileged tool bridge"
+    if [ ! -d /opt/bbt-os/scripts ]; then
+        warn "desktop tree missing; bbt-run and its polkit rule were not installed"
+        return 0
+    fi
     install -d -m 755 /usr/libexec/bbt-os
     install -m 755 "$HERE/scripts/bbt-root-run.sh" /usr/libexec/bbt-os/bbt-run
     if [ -f "$HERE/share/polkit-1/rules.d/50-bbt-os-tools.rules" ]; then

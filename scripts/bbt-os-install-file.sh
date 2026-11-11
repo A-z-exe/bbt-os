@@ -24,8 +24,12 @@ for arg in "$@"; do
     esac
 done
 
-if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
-    printf 'BBT OS installer: file not found: %s\n' "${FILE:-<none>}" >&2
+if [ -z "$FILE" ]; then
+    printf 'Usage: bbt-os-install-file [--dry-run] <file>\n' >&2
+    exit 2
+fi
+if [ ! -f "$FILE" ]; then
+    printf 'BBT OS installer: file not found: %s\n' "$FILE" >&2
     exit 1
 fi
 FILE="$(cd "$(dirname "$FILE")" && pwd)/$(basename "$FILE")"
@@ -190,7 +194,6 @@ The wrapper uses extract-and-run, so it works without libfuse2."
         ;;
 
     run|sh)
-        chmod +x -- "$FILE" 2>/dev/null || true
         ask "Run this installer script?
 
 $name
@@ -199,6 +202,7 @@ Only continue if you trust this file. It runs as your user in a terminal; if it 
         if [ "$kind" = sh ]; then
             script_cmd="bash $(printf '%q' "$FILE")"
         else
+            chmod +x -- "$FILE" 2>/dev/null || true
             script_cmd="$(printf '%q' "$FILE")"
         fi
         run_in_terminal "BBT OS installer: $name" "$script_cmd"

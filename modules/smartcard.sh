@@ -13,8 +13,16 @@ install_smartcard() {
     install -m 755 "$HERE/scripts/bbt-smartcard.sh" /usr/local/bin/bbt-smartcard
     install -m 755 "$HERE/scripts/bbt-smartcard-remote.sh" /usr/local/bin/bbt-smartcard-remote
     if [ -f "$HERE/share/polkit-1/rules.d/50-bbt-os-pcsc.rules" ]; then
-        install -Dm644 "$HERE/share/polkit-1/rules.d/50-bbt-os-pcsc.rules" \
-            /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
+        install -d -m 755 /etc/polkit-1/rules.d
+        if printf '%s' "$TARGET_USER" | grep -Eq '^[a-z_][a-z0-9_-]*$'; then
+            sed "s/@BBT_USER@/$TARGET_USER/g" \
+                "$HERE/share/polkit-1/rules.d/50-bbt-os-pcsc.rules" \
+                >/etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
+            chown root:root /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
+            chmod 644 /etc/polkit-1/rules.d/50-bbt-os-pcsc.rules
+        else
+            warn "unexpected user name '$TARGET_USER'; pcsc polkit rule skipped"
+        fi
     fi
     ok "bbt-smartcard ready: readers, chip info, NFC/MIFARE read and write"
     ok "bbt-smartcard-remote ready: remote Windows reader over VPCD"
