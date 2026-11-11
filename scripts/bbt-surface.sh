@@ -40,6 +40,11 @@ norm_host() {
     printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#^//##; s#^[^/@]*@##; s#[/:?#].*$##' | tr 'A-Z' 'a-z'
 }
 
+# Host plus optional port, for building URLs. norm_host drops the port.
+norm_authority() {
+    printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#^//##; s#^[^/@]*@##; s#[/?#].*$##' | tr 'A-Z' 'a-z'
+}
+
 norm_path() {
     local ppath
     ppath=$(printf '%s' "$1" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]*##; s#[?#].*$##')
@@ -118,9 +123,9 @@ case "$TARGET" in
     http://*|https://*) URL=$TARGET ;;
     *) URL="https://$TARGET" ;;
 esac
-SCHEME=${URL%%://*}; HOST=$(norm_host "$URL")
+SCHEME=${URL%%://*}; HOST=$(norm_host "$URL"); AUTHORITY=$(norm_authority "$URL")
 TARGET_PATH=$(norm_path "$URL")
-BASE="$SCHEME://$HOST"
+BASE="$SCHEME://$AUTHORITY"
 case "$TARGET_PATH" in
     /) : ;;
     *) BASE="$BASE${TARGET_PATH%/}" ;;
@@ -129,7 +134,7 @@ scope_allows "$URL" "$SCOPE" || die "$HOST is NOT inside $SCOPE"
 auth_gate
 
 STAMP=$(date +%Y%m%d-%H%M%S)
-RUN="$RUNS/surface-$(printf '%s' "$HOST" | tr -c 'A-Za-z0-9._-' '_')-$STAMP"
+RUN="$RUNS/surface-$(printf '%s' "$AUTHORITY" | tr -c 'A-Za-z0-9._-' '_')-$STAMP"
 mkdir -p "$RUN/evidence"
 rm -f "$RUNS/latest-surface" 2>/dev/null || true
 ln -sfn "$RUN" "$RUNS/latest-surface"
@@ -234,7 +239,7 @@ while IFS= read -r src; do
     case "$src" in
         http://*|https://*) burl=$src ;;
         //*) burl="$SCHEME:$src" ;;
-        /*) burl="$SCHEME://$HOST$src" ;;
+        /*) burl="$SCHEME://$AUTHORITY$src" ;;
         *) burl="$BASE/$src" ;;
     esac
     case "$burl" in
@@ -265,7 +270,7 @@ if [ -s "$RUN/maps.txt" ]; then
             *) continue ;;
         esac
         case "$mpath" in
-            /*) mapurl="$SCHEME://$HOST$mpath" ;;
+            /*) mapurl="$SCHEME://$AUTHORITY$mpath" ;;
             *) mapurl="${burl%/*}/$mpath" ;;
         esac
         scope_allows "$mapurl" "$SCOPE" || continue
