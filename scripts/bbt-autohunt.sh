@@ -12,13 +12,15 @@ Usage: bbt-autohunt --target <domain|ip> --scope <scope.txt> --out <dir> [option
   --out        Output directory for logs and the report
   --authorized Required confirmation that testing is authorized
   --quick      Skip slower sqlmap/commix stages
+  --skip-tls   Skip sslscan/testssl.sh (many programs exclude TLS findings)
+  --rate N     Max requests/second for ffuf (default: 20)
   -h, --help   Show this help
 
 Only run against systems you own or have explicit written permission to test.
 EOF
 }
 
-TARGET=""; SCOPE=""; OUT=""; AUTHORIZED=0; QUICK=0
+TARGET=""; SCOPE=""; OUT=""; AUTHORIZED=0; QUICK=0; SKIP_TLS=0; RATE=20
 while [ $# -gt 0 ]; do
     case "$1" in
         --target) TARGET=${2:-}; shift 2 ;;
@@ -26,6 +28,8 @@ while [ $# -gt 0 ]; do
         --out) OUT=${2:-}; shift 2 ;;
         --authorized) AUTHORIZED=1; shift ;;
         --quick) QUICK=1; shift ;;
+        --skip-tls) SKIP_TLS=1; shift ;;
+        --rate) RATE=${2:-20}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) printf 'unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
     esac
@@ -76,7 +80,9 @@ while IFS= read -r url; do
     host=${url#http://}; host=${host#https://}; host=${host%%/*}
     safe=$(printf '%s' "$host" | tr -c 'A-Za-z0-9._-' '_')
     run whatweb "$url" >"$SCAN/whatweb_$safe.txt" 2>&1
-    run sslscan "$host:443" >"$SCAN/sslscan_$safe.txt" 2>&1
+    if [ "$SKIP_TLS" -eq 0 ]; then
+        run sslscan "$host:443" >"$SCAN/sslscan_$safe.txt" 2>&1
+    fi
 done <"$RECON/alive.txt"
 
 # 4) Vulnerability sweeps.
@@ -86,7 +92,7 @@ run nikto -h "$(head -1 "$RECON/alive.txt")" -o "$SCAN/nikto.txt" 2>/dev/null
 if [ "$QUICK" -eq 0 ]; then
     run ffuf -u "$(head -1 "$RECON/alive.txt")/FUZZ" \
         -w /usr/share/seclists/Discovery/Web-Content/common.txt \
-        -o "$SCAN/ffuf.json" -of json
+        -rate "$RATE" -o "$SCAN/ffuf.json" -of json
     run commix --url="$(head -1 "$RECON/alive.txt")" --batch -o "$SCAN/commix.txt"
 fi
 
