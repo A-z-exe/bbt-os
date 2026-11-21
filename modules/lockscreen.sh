@@ -92,6 +92,7 @@ EOF
 #login_window button:hover { background-color: #123f38; }
 #login_button { background-image: none; background-color: #39ff14; color: #04120e; font-weight: bold; }
 #auth-realname-label, #auth-status-label { color: #7de3c3; }
+/* /BBT OS lock dialog */
 EOF
     fi
     chown "$TARGET_USER:$(id -gn "$TARGET_USER")" "$css_dir" "$css" 2>/dev/null || true

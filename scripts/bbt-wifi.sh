@@ -576,25 +576,30 @@ cmd_attack() {
     local orig=("$@")
     while [ $# -gt 0 ]; do
         case "$1" in
-            --ssid) ssid=$2; shift 2 ;;
+            --ssid|--bssid|--channel|--security|--iface|--method|--timeout|--wordlist|--crack-time|--client)
+                [ $# -ge 2 ] || die "$1 requires a value"
+                case "$1" in
+                    --ssid) ssid=$2 ;;
+                    --bssid) bssid=$2 ;;
+                    --channel) channel=$2 ;;
+                    --security) security=$2 ;;
+                    --iface) iface=$2 ;;
+                    --method) method=$2 ;;
+                    --timeout) timeout_s=$2 ;;
+                    --wordlist) wordlist=$2 ;;
+                    --crack-time) crack_time=$2 ;;
+                    --client) client=$2 ;;
+                esac
+                shift 2 ;;
             --ssid=*) ssid=${1#*=}; shift ;;
-            --bssid) bssid=$2; shift 2 ;;
             --bssid=*) bssid=${1#*=}; shift ;;
-            --channel) channel=$2; shift 2 ;;
             --channel=*) channel=${1#*=}; shift ;;
-            --security) security=$2; shift 2 ;;
             --security=*) security=${1#*=}; shift ;;
-            --iface) iface=$2; shift 2 ;;
             --iface=*) iface=${1#*=}; shift ;;
-            --method) method=$2; shift 2 ;;
             --method=*) method=${1#*=}; shift ;;
-            --timeout) timeout_s=$2; shift 2 ;;
             --timeout=*) timeout_s=${1#*=}; shift ;;
-            --wordlist) wordlist=$2; shift 2 ;;
             --wordlist=*) wordlist=${1#*=}; shift ;;
-            --crack-time) crack_time=$2; shift 2 ;;
             --crack-time=*) crack_time=${1#*=}; shift ;;
-            --client) client=$2; shift 2 ;;
             --client=*) client=${1#*=}; shift ;;
             --deauth) deauth=1; shift ;;
             --no-crack) no_crack=1; shift ;;

@@ -26,8 +26,8 @@ Kali tooling, repositories and updates keep working normally.
 
 | Area | Contents |
 | --- | --- |
-| **Web / Recon** | subfinder, httpx, katana, nuclei, ffuf, wfuzz, whatweb, wafw00f, gobuster, feroxbuster, dirb, nikto, sqlmap, WPScan, amass, dnsx, naabu, gowitness, theHarvester, arjun, exploitdb, nmap, masscan, hydra |
-| **Wireless** | `bbt-wifi` engine: adapter/monitor check, scan cache, automatic method choice, PMKID/SAE (hcxdumptool), 4-way handshake (aircrack-ng), WPS Pixie Dust (reaver/bully), WEP, hashcat cracking, run history, cleanup |
+| **Web / Recon** | subfinder, httpx, katana, nuclei, ffuf, wfuzz, whatweb, wafw00f, gobuster, feroxbuster, dirb, nikto, sqlmap, WPScan, amass, dnsx, naabu, gowitness, theHarvester, arjun, dalfox, exploitdb, nmap, masscan, hydra |
+| **Wireless** | `bbt-wifi` engine: adapter/monitor check, scan cache, automatic method choice, PMKID/SAE (hcxdumptool), 4-way handshake (aircrack-ng), WPS Pixie Dust (reaver/bully), WEP, hashcat/john cracking, run history, cleanup |
 | **Android** | adb, fastboot, apktool, jadx + JADX GUI, apksigner, dex2jar, jd-gui, scrcpy, frida-tools, objection, MobSF (Docker), `bbt-android-recovery` for device state, data copy and owned-device lock removal |
 | **Windows / AD** | Impacket, NetExec, Evil-WinRM, Responder, Enum4linux-ng, BloodHound.py |
 | **Smart card / NFC** | PC/SC readers (`pcsc_scan`, OpenSC), ATR and PKCS#15/PIV certificates, NFC tag scan, NDEF read/write and MIFARE dump (authorized cards only) |
@@ -623,7 +623,7 @@ uninstall.sh            remove the overlay, restore identity
 VERSION                 build identity
 AUTHORS.md, LICENSE     developer and license
 assets/                 launcher icon, wallpaper, login art, Plymouth splash, GRUB art
-assets/icons/           42 neon SVG launcher icons + generator
+assets/icons/           43 neon SVG launcher icons + generator
 branding/               issue, issue.net, motd
 menu/                   GTK launcher and desktop entry
 modules/                web, wifi, workflows, kernel, android, windows, smartcard, mobsf, bbt, audit, desktop, lockscreen, branding, boot

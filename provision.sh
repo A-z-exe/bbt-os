@@ -223,7 +223,7 @@ step "Tool inventory"
 missing=0
 for t in nmap ffuf nuclei httpx subfinder katana amass dnsx naabu gobuster \
          feroxbuster dirb nikto sqlmap wpscan hydra whatweb wafw00f gowitness \
-         theharvester searchsploit msfconsole burpsuite wireshark \
+         theharvester searchsploit \
          adb fastboot apktool jadx apksigner d2j-dex2jar scrcpy \
          frida-ps objection \
          netexec evil-winrm responder enum4linux-ng bloodhound-python docker bbt \

@@ -111,8 +111,11 @@ probe() {
         runner=(runuser -u "$TU" -- "$bin")
     fi
     for flag in --version -version -V version -h --help -Help -help; do
-        out=$(timeout 6 "${runner[@]}" "$flag" 2>&1 | tr -s '\r' '\n' | grep -m1 -v '^[[:space:]]*$' | cut -c1-64)
+        raw=$(timeout 6 "${runner[@]}" "$flag" 2>&1)
+        rc=$?
+        out=$(printf '%s' "$raw" | tr -s '\r' '\n' | grep -m1 -v '^[[:space:]]*$' | cut -c1-64)
         [ -n "$out" ] && { printf '%s' "$out"; return 0; }
+        [ "$rc" -eq 124 ] && return 124
     done
     return 1
 }
@@ -271,13 +274,13 @@ TOOLS=(
     "katana:kali-tools-web:1" "naabu:kali-tools-web:1" "dnsx:kali-tools-web:1"
     "ffuf:ffuf:1" "feroxbuster:feroxbuster:1" "nmap:nmap:1" "masscan:masscan:1"
     "whatweb:whatweb:1" "nikto:nikto:1" "wpscan:wpscan:1" "sqlmap:sqlmap:1"
-    "dalfox:dalfox:1" "arjun:arjun:0" "gobuster:gobuster:0" "wafw00f:wafw00f:0"
+    "dalfox:dalfox:0" "arjun:arjun:0" "gobuster:gobuster:0" "wafw00f:wafw00f:0"
     "amass:amass:0" "gowitness:gowitness:0" "theharvester|theHarvester:theharvester:0"
     "adb:adb:1" "apktool:apktool:1" "jadx:jadx:1" "d2j-dex2jar:dex2jar:1"
     "frida-ps:frida-tools:1" "objection:objection:1" "scrcpy:scrcpy:1"
     "netexec:netexec:1" "evil-winrm:evil-winrm:1" "responder:responder:1"
     "enum4linux-ng:enum4linux-ng:1" "bloodhound-python:bloodhound.py:1"
-    "impacket-secretsdump:python3-impacket:1" "hashcat:hashcat:1" "john:john:1"
+    "impacket-secretsdump:python3-impacket:1" "hashcat:hashcat:1" "john:john:0"
     "opensc-tool:opensc:1" "pcsc_scan:pcsc-tools:1" "nfc-list:libnfc-bin:0"
     "mfoc:mfoc:0" "hcxdumptool:hcxdumptool:1" "hcxpcapngtool:hcxtools:1"
     "aircrack-ng:aircrack-ng:1" "airmon-ng:aircrack-ng:1" "reaver:reaver:1"
@@ -364,7 +367,7 @@ if [ "$FIX" = 1 ]; then
         IFS=: read -r tool pkg required <<<"$entry"
         if [ "$required" = 1 ] && ! tool_name "$tool" >/dev/null; then
             case "$pkg" in
-                kali-tools-web|docker.io) continue ;;
+                docker.io) continue ;;
                 frida-tools|objection) continue ;;  # pipx-managed below
             esac
             fix_pkgs+=("$pkg")

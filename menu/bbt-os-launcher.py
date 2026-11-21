@@ -21,13 +21,6 @@ import tempfile
 import time
 from pathlib import Path
 
-import gi
-
-gi.require_version("Gdk", "3.0")
-gi.require_version("GdkPixbuf", "2.0")
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOME = Path.home()
 LOCAL_BIN = HOME / ".local" / "bin"
@@ -54,6 +47,27 @@ def read_version() -> str:
 
 
 VERSION = read_version()
+
+if "--version" in sys.argv:
+    print(f"BBT OS launcher {VERSION}")
+    raise SystemExit(0)
+
+try:
+    import gi
+
+    gi.require_version("Gdk", "3.0")
+    gi.require_version("GdkPixbuf", "2.0")
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
+except ImportError:
+    if "--check" not in sys.argv:
+        raise
+    # --check is a text-only mode: allow it on hosts without GTK installed.
+    class _Stub:
+        Window = type("Window", (), {})
+        Error = RuntimeError
+
+    Gdk = GdkPixbuf = GLib = Gtk = _Stub()
 
 CSS = b"""
 window { background-color: #04080a; color: #d7fff1; }
@@ -275,7 +289,7 @@ def terminal_command(title: str, command: str) -> list[str] | None:
         handle.write("clear 2>/dev/null || true\n")
         handle.write(f"printf '\\033[1;32m%s\\033[0m\\n\\n' {shlex.quote(title)}\n")
         handle.write(command + "\n")
-        handle.write("\necho\nexec \"${SHELL:-/bin/bash}\" -i\n")
+        handle.write("\necho\n\"${SHELL:-/bin/bash}\" -i\n")
     os.chmod(runner, 0o700)
     return [term, flag, runner]
 
@@ -1017,6 +1031,8 @@ class BBTWindow(Gtk.Window):
             return
         if len(argv) >= 2 and argv[1] == "-m":
             runner = f"{shlex.quote(argv[0])} -m pip install -e . && {shlex.quote(argv[0])} -m bbt --version"
+        elif (Path(repo) / "pyproject.toml").is_file() or (Path(repo) / "setup.py").is_file():
+            runner = f"python3 -m pip install -e . && {shlex.quote(argv[0])} --version"
         else:
             runner = f"{shlex.quote(argv[0])} --version"
         command = f"cd {shlex.quote(repo)} && git pull --ff-only && {runner}"

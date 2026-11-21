@@ -111,7 +111,16 @@ if [ -d "$BACKUP_DIR" ]; then
         rm -f "$BACKUP_DIR/lock-restore.tsv"
     fi
     for gtk_css in /home/*/.config/gtk-3.0/gtk.css; do
-        [ -f "$gtk_css" ] && sed -i '/\/\* BBT OS lock dialog \*\//,$d' "$gtk_css"
+        [ -f "$gtk_css" ] || continue
+        # Remove only the BBT block, preserving rules appended after it.
+        if awk '
+            /\/\* BBT OS lock dialog \*\// { inblock = 1; next }
+            inblock && /\/\* \/BBT OS lock dialog \*\// { inblock = 0; next }
+            !inblock { print }
+        ' "$gtk_css" >"$gtk_css.bbt-tmp"; then
+            cat "$gtk_css.bbt-tmp" >"$gtk_css"
+        fi
+        rm -f "$gtk_css.bbt-tmp"
     done
 fi
 
