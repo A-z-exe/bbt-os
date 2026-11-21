@@ -26,7 +26,8 @@ Kali tooling, repositories and updates keep working normally.
 
 | Area | Contents |
 | --- | --- |
-| **Web / Recon** | subfinder, httpx, katana, nuclei, ffuf, wfuzz, whatweb, wafw00f, gobuster, feroxbuster, dirb, nikto, sqlmap, WPScan, amass, dnsx, naabu, gowitness, theHarvester, arjun, dalfox, exploitdb, nmap, masscan, hydra |
+| **Web / Recon** | subfinder, httpx, katana, nuclei, ffuf, wfuzz, whatweb, wafw00f, gobuster, feroxbuster, dirb, dirsearch, nikto, sqlmap, commix, dalfox, WPScan, amass, dnsx, naabu, dnsrecon, fierce, recon-ng, sslscan, testssl.sh, gowitness, theHarvester, arjun, exploitdb, nmap, masscan, hydra |
+| **Exploitation / proxy** | Metasploit Framework (`msfconsole`), Burp Suite, Wireshark (`tshark`), John the Ripper |
 | **Wireless** | `bbt-wifi` engine: adapter/monitor check, scan cache, automatic method choice, PMKID/SAE (hcxdumptool), 4-way handshake (aircrack-ng), WPS Pixie Dust (reaver/bully), WEP, hashcat/john cracking, run history, cleanup |
 | **Android** | adb, fastboot, apktool, jadx + JADX GUI, apksigner, dex2jar, jd-gui, scrcpy, frida-tools, objection, MobSF (Docker), `bbt-android-recovery` for device state, data copy and owned-device lock removal |
 | **Windows / AD** | Impacket, NetExec, Evil-WinRM, Responder, Enum4linux-ng, BloodHound.py |

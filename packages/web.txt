@@ -13,8 +13,11 @@ wafw00f
 feroxbuster
 gobuster
 dirb
+dirsearch
 nikto
 sqlmap
+commix
+dalfox
 wpscan
 hydra
 masscan
@@ -24,3 +27,12 @@ gowitness
 theharvester
 arjun
 exploitdb
+dnsrecon
+fierce
+recon-ng
+sslscan
+testssl.sh
+burpsuite
+metasploit-framework
+wireshark
+john

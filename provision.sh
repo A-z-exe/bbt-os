@@ -222,8 +222,9 @@ ok "ssh, open-vm-tools and linger"
 step "Tool inventory"
 missing=0
 for t in nmap ffuf nuclei httpx subfinder katana amass dnsx naabu gobuster \
-         feroxbuster dirb nikto sqlmap wpscan hydra whatweb wafw00f gowitness \
-         theharvester searchsploit \
+         feroxbuster dirb dirsearch nikto sqlmap commix dalfox wpscan hydra \
+         whatweb wafw00f gowitness theharvester searchsploit dnsrecon fierce \
+         recon-ng sslscan testssl.sh burpsuite msfconsole wireshark john \
          adb fastboot apktool jadx apksigner d2j-dex2jar scrcpy \
          frida-ps objection \
          netexec evil-winrm responder enum4linux-ng bloodhound-python docker bbt \
