@@ -1,4 +1,4 @@
-User-agent: *
+﻿User-agent: *
 Allow: /
 
 Sitemap: https://a-z-exe.github.io/bbt-os/sitemap.xml
