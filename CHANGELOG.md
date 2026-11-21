@@ -4,6 +4,11 @@ All notable changes to BBT OS are documented in this file.
 
 ## 2.7.0
 
+### Added — automated hunting
+- `scripts/bbt-autohunt.sh`: one-command, scope-gated pipeline (subdomain discovery → live host probe → fingerprint/TLS → nuclei/dalfox/nikto/ffuf/commix → report).
+- `scripts/bbt-report.py`: converts run output into a Markdown report with findings, PoC guidance and remediation notes.
+- Installed in the VM as `bbt-autohunt`.
+
 ### Added — expanded bug-bounty toolset
 - `packages/web.txt`: added `dirsearch`, `commix`, `dalfox`, `dnsrecon`, `fierce`, `recon-ng`, `sslscan`, `testssl.sh`, `burpsuite`, `metasploit-framework`, `wireshark` and `john`.
 - `provision.sh` verification now checks for all of the above binaries, so a clean install confirms they are present instead of silently omitting them.

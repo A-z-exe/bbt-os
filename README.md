@@ -32,7 +32,7 @@ Kali tooling, repositories and updates keep working normally.
 | **Android** | adb, fastboot, apktool, jadx + JADX GUI, apksigner, dex2jar, jd-gui, scrcpy, frida-tools, objection, MobSF (Docker), `bbt-android-recovery` for device state, data copy and owned-device lock removal |
 | **Windows / AD** | Impacket, NetExec, Evil-WinRM, Responder, Enum4linux-ng, BloodHound.py |
 | **Smart card / NFC** | PC/SC readers (`pcsc_scan`, OpenSC), ATR and PKCS#15/PIV certificates, NFC tag scan, NDEF read/write and MIFARE dump (authorized cards only) |
-| **Workflows** | `bbt-workflow`: matched chains `web`, `wordpress`, `android`, `ad`, every host checked against the scope file; `bbt-surface`: scope-gated header, discovery and JavaScript bundle audit with a report draft |
+| **Workflows** | `bbt-workflow`: matched chains `web`, `wordpress`, `android`, `ad`, every host checked against the scope file; `bbt-surface`: scope-gated header, discovery and JavaScript bundle audit with a report draft; `bbt-autohunt`: one-command automated recon → scan → PoC hints → Markdown report |
 | **Bounty / income** | `bbt-bounty`: program workspaces, path-aware scope, report quality gate (PoC, evidence, impact, excluded classes), CVSS v3.1 scoring, submission ledger and per-program earnings |
 | **Kernel / drivers** | headers, DKMS build tools, Wi-Fi/NFC firmware, `cfg80211`/`mac80211`/`nfc` modules, regdb, `rfkill`, open-vm-tools, `bbt-ktune` for reversible scan tuning |
 | **Toolkit** | [BBT Toolkit](https://github.com/A-z-exe/BugBountyToolkit) with scope-gated `-m auto` orchestration |
