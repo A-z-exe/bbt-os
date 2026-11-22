@@ -770,9 +770,9 @@ cmd_doctor() {
         warn "rockyou.txt missing: sudo bbt-os-doctor --fix"
     fi
     if [ -f "$HASHCAT_RULES" ]; then
-        info "hashcat rules best64 present"
+        info "hashcat rules $(basename "$HASHCAT_RULES") present"
     else
-        warn "hashcat best64 rules missing"
+        warn "hashcat rules missing (best64/best66)"
     fi
     return $rc
 }
