@@ -719,10 +719,10 @@ cmd_attack() {
     clients=$(awk -F, '/Station MAC/{f=1; next} f && NF {gsub(/^ +| +$/, "", $1); if ($1 != "") print $1}' "$RUN"/handshake-*.csv 2>/dev/null | tr '\n' ' ')
     {
         printf '# Wi-Fi audit: %s\n\n' "$ssid"
-        printf '- BSSID: `%s`\n- Channel: %s\n- Security: %s\n' "$bssid" "$channel" "$security"
-        printf '- Adapter: `%s` (%s)\n- Method: %s (%s)\n' "$iface" "$(driver_of "$iface")" "$method" "$(tool_for_method "$method")"
-        printf '- Started: %s\n- Capture: `%s`\n' "$(date -Is)" "${hashfile#$RUN/}"
-        printf '- Clients seen: %s\n' "${clients:-none}"
+        printf -- '- BSSID: `%s`\n- Channel: %s\n- Security: %s\n' "$bssid" "$channel" "$security"
+        printf -- '- Adapter: `%s` (%s)\n- Method: %s (%s)\n' "$iface" "$(driver_of "$iface")" "$method" "$(tool_for_method "$method")"
+        printf -- '- Started: %s\n- Capture: `%s`\n' "$(date -Is)" "${hashfile#$RUN/}"
+        printf -- '- Clients seen: %s\n' "${clients:-none}"
         if [ -n "$psk" ]; then printf '\n**Key recovered:** `%s`\n' "$psk"; else printf '\n**Result:** no key recovered in this run.\n'; fi
         printf '\n## Files\n\n'
         ls -1 "$RUN" | sed 's/^/- /'
